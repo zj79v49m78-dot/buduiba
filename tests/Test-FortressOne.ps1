@@ -102,6 +102,64 @@ Write-Host ('=' * 60) -ForegroundColor DarkGray
 
 # ---------------------------------------------------------------------------
 Write-Host ''
+Write-Host 'Source encoding' -ForegroundColor Cyan
+
+Test-Case 'All script files are pure ASCII' {
+    # Windows PowerShell 5.1 -- which is what ships with Windows and what most
+    # people will actually run this with -- decodes .ps1/.psm1 files using the
+    # system ANSI codepage, NOT UTF-8, unless the file carries a byte-order
+    # mark. A UTF-8 em dash inside a double-quoted string therefore decodes to
+    # three bytes of garbage, one of which terminates the string early and
+    # produces a cascade of parser errors far from the real cause.
+    #
+    # PowerShell 7 defaults to UTF-8, so this class of bug is INVISIBLE when
+    # testing on 7 and fatal on 5.1. Keeping source pure ASCII removes the
+    # dependency on file encoding entirely. Prose in .md and .json files is
+    # exempt: those are read with an explicit -Encoding UTF8.
+    $offenders = [System.Collections.ArrayList]::new()
+
+    Get-ChildItem -LiteralPath $repoRoot -Recurse -Include '*.ps1', '*.psm1' | ForEach-Object {
+        $bytes = [System.IO.File]::ReadAllBytes($_.FullName)
+        for ($i = 0; $i -lt $bytes.Length; $i++) {
+            if ($bytes[$i] -gt 127) {
+                $null = $offenders.Add("$($_.Name) at byte $i (0x$('{0:x2}' -f $bytes[$i]))")
+                break
+            }
+        }
+    }
+
+    Assert-Equal 0 $offenders.Count "Non-ASCII bytes found -- these break Windows PowerShell 5.1: $($offenders -join '; ')"
+}
+
+Test-Case 'All JSON reads specify an explicit encoding' {
+    # Get-Content in Windows PowerShell 5.1 also defaults to the ANSI codepage.
+    # The tweak rationales contain typographic characters, so reading them
+    # without -Encoding UTF8 renders mojibake in the user's report.
+    $bad = [System.Collections.ArrayList]::new()
+
+    # Scope to shipped code. The test file is excluded because its own scanning
+    # loop necessarily contains the string it is looking for.
+    $shipped = @(
+        Get-ChildItem -LiteralPath (Join-Path $repoRoot 'src') -Recurse -Include '*.psm1'
+        Get-ChildItem -LiteralPath (Join-Path $repoRoot 'tools') -Recurse -Include '*.ps1'
+        Get-Item -LiteralPath (Join-Path $repoRoot 'FortressOne.ps1')
+    )
+
+    $shipped | ForEach-Object {
+        $lineNumber = 0
+        foreach ($line in (Get-Content -LiteralPath $_.FullName -Encoding UTF8)) {
+            $lineNumber++
+            if ($line -match 'Get-Content' -and $line -notmatch '-Encoding') {
+                $null = $bad.Add("$($_.Name):$lineNumber")
+            }
+        }
+    }
+
+    Assert-Equal 0 $bad.Count "Get-Content without -Encoding: $($bad -join ', ')"
+}
+
+# ---------------------------------------------------------------------------
+Write-Host ''
 Write-Host 'Tweak definitions' -ForegroundColor Cyan
 
 Test-Case 'All shipped tweak definitions load and validate' {
@@ -306,7 +364,7 @@ Test-Case 'The index rebuilds correctly from immutable transaction files' {
 Test-Case 'Malformed JSON is refused rather than committed' {
     $path = Join-Path $tempData 'atomic-test.json'
     Write-FOAtomicJson -Path $path -Object ([ordered]@{ a = 1; b = 'two' })
-    $read = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    $read = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-Equal 1 $read.a 'Atomic write corrupted the payload'
     Assert-True (-not (Test-Path -LiteralPath "$path.tmp")) 'Temp file was left behind'
 }

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Network latency diagnostics — the module that answers "why is my ping high".
+    Network latency diagnostics -- the module that answers "why is my ping high".
 .DESCRIPTION
     Three distinct questions get confused with each other constantly:
 
@@ -49,7 +49,7 @@ function Measure-FOTcpLatency {
         Measures TCP connect latency to a host, returning distribution statistics.
     .DESCRIPTION
         Reports minimum, median, mean, maximum and jitter. The MINIMUM is the
-        closest thing to your true path latency — it is the sample least
+        closest thing to your true path latency -- it is the sample least
         contaminated by queuing. The spread between min and max is jitter, and
         jitter is what you feel as inconsistency.
     #>
@@ -107,7 +107,7 @@ function Measure-FOTcpLatency {
 
     $mean = ($sorted | Measure-Object -Average).Average
 
-    # Jitter as mean absolute deviation between consecutive samples — this
+    # Jitter as mean absolute deviation between consecutive samples -- this
     # matches how network engineers define it, and reflects what the game's
     # interpolation actually has to cope with.
     $deltas = for ($i = 1; $i -lt $times.Count; $i++) {
@@ -165,8 +165,8 @@ function Test-FOBufferbloat {
         This is the test that matters most and that almost nobody runs.
 
         Bufferbloat is oversized buffers in your router or modem. When anything
-        saturates the link — a Windows update, a game patch downloading, someone
-        else in the house streaming — packets queue in those buffers instead of
+        saturates the link -- a Windows update, a game patch downloading, someone
+        else in the house streaming -- packets queue in those buffers instead of
         being dropped. Your game packets sit in that queue. Ping goes from 30ms
         to 300ms and the game becomes unplayable, while every speed test still
         reports the connection as fine.
@@ -209,7 +209,7 @@ function Test-FOBufferbloat {
     } -ArgumentList $LoadUrl, $LoadSeconds
 
     # Give the download a moment to ramp up and actually fill the buffer before
-    # sampling — measuring too early understates the problem.
+    # sampling -- measuring too early understates the problem.
     Start-Sleep -Seconds 3
     $loaded = Measure-FOTcpLatency -TargetHost $LatencyTarget -Samples 12
 
@@ -340,7 +340,7 @@ function Get-FONetworkReport {
     $null = $lines.Add("Private hops before reaching a public address: $($nat.PrivateHopCount)")
     if ($nat.IsDoubleNat) {
         $null = $lines.Add('')
-        $null = $lines.Add('  [INFO] Double-NAT confirmed — two layers of private addressing.')
+        $null = $lines.Add('  [INFO] Double-NAT confirmed -- two layers of private addressing.')
         foreach ($wrapped in (Split-FOText -Width 66 -Text "Be careful how much you blame this. A second NAT hop typically adds one to three milliseconds, not thirty. It does not explain a high-30s ping. What it genuinely can cause is Fortnite reporting a strict or moderate NAT type, occasional trouble with voice chat, and slower peer connection setup. If you want to fix it properly, put the outer router into bridge or modem mode so only one device performs NAT. Do not expect your ping number to move much.")) {
             $null = $lines.Add("        $wrapped")
         }
@@ -360,7 +360,7 @@ function Get-FONetworkReport {
             $null = $lines.Add('')
 
             $verdict = if ($bloat.IncreaseMs -lt 30) {
-                "Your connection holds up well under load. Bufferbloat is not your problem, which means the delay you are feeling is on the PC side rather than the network side — look at the frame cap and GPU utilisation instead."
+                "Your connection holds up well under load. Bufferbloat is not your problem, which means the delay you are feeling is on the PC side rather than the network side -- look at the frame cap and GPU utilisation instead."
             } elseif ($bloat.IncreaseMs -lt 100) {
                 "Moderate bufferbloat. Your latency roughly doubles when anything else is downloading. If your delay feels worst when the Epic launcher is patching or someone else is streaming, this is why. Enabling Smart Queue Management (SQM/QoS) on your primary router will fix it."
             } else {
@@ -389,7 +389,7 @@ function Get-FONetworkReport {
 
         $closest = $regions | Where-Object { $_.Reachable } | Select-Object -First 1
         if ($closest) {
-            foreach ($wrapped in (Split-FOText -Width 68 -Text "Your closest region is $($closest.Region) at roughly $($closest.MinMs) ms. If Fortnite is putting you in a different region than this one, change it in the game's matchmaking region setting — playing on the wrong region is the one ping problem that genuinely is fixable in software, and it costs nothing to check. If Fortnite already matches you to $($closest.Region), then your ping is essentially distance to the datacentre, and no tweak, config or 'ping booster' will meaningfully reduce it. Anything advertising otherwise is selling you a slower route with extra steps.")) {
+            foreach ($wrapped in (Split-FOText -Width 68 -Text "Your closest region is $($closest.Region) at roughly $($closest.MinMs) ms. If Fortnite is putting you in a different region than this one, change it in the game's matchmaking region setting -- playing on the wrong region is the one ping problem that genuinely is fixable in software, and it costs nothing to check. If Fortnite already matches you to $($closest.Region), then your ping is essentially distance to the datacentre, and no tweak, config or 'ping booster' will meaningfully reduce it. Anything advertising otherwise is selling you a slower route with extra steps.")) {
                 $null = $lines.Add("  $wrapped")
             }
         }

@@ -7,8 +7,8 @@
     device instance paths that are unique to your hardware, so they have to be
     discovered at runtime.
 
-    Rather than writing a separate apply/revert path for them — which would mean
-    hand-written undo logic and all the risk that carries — this module
+    Rather than writing a separate apply/revert path for them -- which would mean
+    hand-written undo logic and all the risk that carries -- this module
     DISCOVERS the targets and then synthesises ordinary tweak objects, which are
     handed to the same Invoke-FOApply used by everything else.
 
@@ -30,7 +30,7 @@ function Get-FOMsiCapableDevices {
 
         For a GPU this reduces the DPC latency spikes that show up as frametime
         stutter. For a USB host controller it reduces the delay between your
-        controller sending an input report and the OS servicing it — which is
+        controller sending an input report and the OS servicing it -- which is
         the specific thing you are chasing.
     #>
     [CmdletBinding()]
@@ -221,7 +221,7 @@ function Measure-FOTimerResolution {
         value claims. Note for Windows 11: since Windows 10 2004, a timer
         resolution request affects only the requesting process, and Windows 11
         ignores requests from background processes entirely. That makes
-        third-party "timer resolution" utilities largely a no-op on your OS —
+        third-party "timer resolution" utilities largely a no-op on your OS --
         they raise resolution for themselves and nothing else.
 
         Fortnite requests high resolution for itself, which is what matters.
@@ -283,7 +283,7 @@ function Get-FOLatencyReport {
     $notEnabled = @($msiDevices | Where-Object { -not $_.MsiEnabled })
     if ($notEnabled.Count -gt 0) {
         $null = $lines.Add('')
-        foreach ($wrapped in (Split-FOText -Width 68 -Text "$($notEnabled.Count) device(s) support MSI but are still using shared line-based interrupts. Enabling MSI on the GPU and the USB host controller is worth doing. Use the 'Apply device latency tweaks' option to do it — it is journaled and revertible like everything else.")) {
+        foreach ($wrapped in (Split-FOText -Width 68 -Text "$($notEnabled.Count) device(s) support MSI but are still using shared line-based interrupts. Enabling MSI on the GPU and the USB host controller is worth doing. Use the 'Apply device latency tweaks' option to do it -- it is journaled and revertible like everything else.")) {
             $null = $lines.Add("  $wrapped")
         }
     }
@@ -303,7 +303,7 @@ function Get-FOLatencyReport {
         $null = $lines.Add('')
         $null = $lines.Add('  Detected as game controllers:')
         foreach ($c in $controllers) {
-            $flag = if ($c.EnhancedPm -eq 1 -or $c.SelectiveSuspend -eq 1) { 'CAN POWER DOWN — fix this' } else { 'power management already off' }
+            $flag = if ($c.EnhancedPm -eq 1 -or $c.SelectiveSuspend -eq 1) { 'CAN POWER DOWN -- fix this' } else { 'power management already off' }
             $null = $lines.Add("    - $($c.FriendlyName): $flag")
         }
     }

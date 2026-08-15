@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    FortressOne state journal — the mechanism that makes every change reversible.
+    FortressOne state journal -- the mechanism that makes every change reversible.
 .DESCRIPTION
     The journal is the single most important component in FortressOne.
 
@@ -9,7 +9,7 @@
     hands it to the journal. Reverting is then a purely mechanical operation:
     replay the recorded prior states in reverse order.
 
-    This means a tweak cannot be "unrevertible by mistake" — the revert path is
+    This means a tweak cannot be "unrevertible by mistake" -- the revert path is
     the same code for every tweak, and it is exercised on every tweak that has
     ever been applied. There is no per-tweak undo function to forget to write,
     get wrong, or let drift out of sync with the apply path.
@@ -19,7 +19,7 @@
       PriorValue  : if it existed, what was it?
 
     That distinction matters enormously. Restoring a registry value to 0 is NOT
-    the same as deleting a value that never existed — Windows and drivers behave
+    the same as deleting a value that never existed -- Windows and drivers behave
     differently for "absent" versus "present and zero". Conflating the two is the
     most common way tweaking tools leave systems permanently altered while
     claiming to have restored them.
@@ -80,7 +80,7 @@ function Write-FOAtomicJson {
 
     # Validate the temp file parses before it is allowed to replace the real one.
     try {
-        $null = Get-Content -LiteralPath $temp -Raw | ConvertFrom-Json
+        $null = Get-Content -LiteralPath $temp -Raw -Encoding UTF8 | ConvertFrom-Json
     } catch {
         Remove-Item -LiteralPath $temp -Force -ErrorAction SilentlyContinue
         throw "Refusing to commit malformed journal JSON to '$Path': $($_.Exception.Message)"
@@ -99,7 +99,7 @@ function Read-FOJournalIndex {
     }
 
     try {
-        $raw = Get-Content -LiteralPath $indexPath -Raw -ErrorAction Stop
+        $raw = Get-Content -LiteralPath $indexPath -Raw -Encoding UTF8 -ErrorAction Stop
         return ($raw | ConvertFrom-Json)
     } catch {
         # A corrupt index is recoverable: the immutable tx-*.json files are the
@@ -131,7 +131,7 @@ function Restore-FOJournalIndex {
 
     foreach ($file in $txFiles) {
         try {
-            $tx = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
+            $tx = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
         } catch {
             Write-FOLog -Level Warn -Message 'Skipping unreadable transaction file' -Data @{ file = $file.Name }
             continue
@@ -309,7 +309,7 @@ function Get-FOTransactionHistory {
         Select-Object -First $Last |
         ForEach-Object {
             try {
-                $tx = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json
+                $tx = Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
                 [pscustomobject]@{
                     TransactionId = $tx.transactionId
                     Operation     = $tx.operation
@@ -330,7 +330,7 @@ function Get-FOTransaction {
     if (-not (Test-Path -LiteralPath $path)) {
         throw "No such transaction: $TransactionId"
     }
-    return (Get-Content -LiteralPath $path -Raw | ConvertFrom-Json)
+    return (Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json)
 }
 
 Export-ModuleMember -Function `

@@ -273,7 +273,7 @@ function Get-FOSystemFindings {
             $null = $findings.Add([pscustomobject]@{
                 Severity = 'WARN'
                 Title    = "Memory is running at $($stick.ConfiguredMhz) MHz but is rated for $($stick.SpeedMhz) MHz"
-                Detail   = "XMP is not enabled, or is not applying. Fortnite is sensitive to memory latency and bandwidth, and running 3200 MHz memory at the JEDEC default of 2133 costs real frames — commonly 5 to 10 percent of your 1% lows. Enable XMP Profile 1 in BIOS. This is free performance you have already paid for."
+                Detail   = "XMP is not enabled, or is not applying. Fortnite is sensitive to memory latency and bandwidth, and running 3200 MHz memory at the JEDEC default of 2133 costs real frames -- commonly 5 to 10 percent of your 1% lows. Enable XMP Profile 1 in BIOS. This is free performance you have already paid for."
             })
             break
         }
@@ -283,7 +283,7 @@ function Get-FOSystemFindings {
     if ($s.RamSticks.Count -eq 1) {
         $null = $findings.Add([pscustomobject]@{
             Severity = 'WARN'
-            Title    = 'Only one memory module detected — running in single channel'
+            Title    = 'Only one memory module detected -- running in single channel'
             Detail   = "Single-channel memory halves your memory bandwidth. This is one of the largest performance losses possible on an Intel platform and it affects 1% lows badly. If you have two 8GB sticks, make sure they are in the correct paired slots for your board (usually A2 and B2, the second and fourth slots from the CPU)."
         })
     }
@@ -294,7 +294,7 @@ function Get-FOSystemFindings {
             $null = $findings.Add([pscustomobject]@{
                 Severity = 'CRITICAL'
                 Title    = "Display is running at $($d.CurrentRefreshHz) Hz but supports $($d.MaxRefreshHz) Hz"
-                Detail   = "You are leaving refresh rate on the table, which directly costs you input latency regardless of how many frames the GPU produces. Fix in Settings, System, Display, Advanced display, Choose a refresh rate. This is the first thing to correct — every other latency tweak is smaller than this."
+                Detail   = "You are leaving refresh rate on the table, which directly costs you input latency regardless of how many frames the GPU produces. Fix in Settings, System, Display, Advanced display, Choose a refresh rate. This is the first thing to correct -- every other latency tweak is smaller than this."
             })
         }
     }
@@ -313,7 +313,7 @@ function Get-FOSystemFindings {
         $null = $findings.Add([pscustomobject]@{
             Severity = 'INFO'
             Title    = 'Defender Tamper Protection is enabled'
-            Detail   = "Any tweak that disables Defender through the registry will be silently reverted by Windows within minutes while this is on. FortressOne will not attempt to bypass it — tools that defeat Tamper Protection behave indistinguishably from malware. If you genuinely want Defender off, turn Tamper Protection off manually in Windows Security first. The Defender exclusion tweak is a better option regardless."
+            Detail   = "Any tweak that disables Defender through the registry will be silently reverted by Windows within minutes while this is on. FortressOne will not attempt to bypass it -- tools that defeat Tamper Protection behave indistinguishably from malware. If you genuinely want Defender off, turn Tamper Protection off manually in Windows Security first. The Defender exclusion tweak is a better option regardless."
         })
     }
 
@@ -322,7 +322,7 @@ function Get-FOSystemFindings {
         $null = $findings.Add([pscustomobject]@{
             Severity = 'WARN'
             Title    = 'Windows is installed on a mechanical hard drive'
-            Detail   = "This is the single biggest upgrade available to this machine and no software tweak substitutes for it. It also means you should NOT disable SysMain — on a mechanical drive its prefetching genuinely helps. An SSD would improve load times, asset streaming hitches and general responsiveness more than everything else in this tool combined."
+            Detail   = "This is the single biggest upgrade available to this machine and no software tweak substitutes for it. It also means you should NOT disable SysMain -- on a mechanical drive its prefetching genuinely helps. An SSD would improve load times, asset streaming hitches and general responsiveness more than everything else in this tool combined."
         })
     }
 
@@ -333,8 +333,8 @@ function Get-FOSystemFindings {
         if ($refresh -ge 200) {
             $null = $findings.Add([pscustomobject]@{
                 Severity = 'CRITICAL'
-                Title    = "$($gpu.Name) driving a $refresh Hz display — you are GPU bound in real matches"
-                Detail   = "This is almost certainly the root cause of your input delay. When the GPU sits at 99-100 percent utilisation, frames queue ahead of the display and every queued frame adds latency to your controller input. It explains exactly why Creative feels instant at 240 FPS while a real match feels awful at 200: in Creative the GPU has headroom and the queue stays empty. THE FIX IS COUNTERINTUITIVE — cap your frame rate BELOW what the GPU can sustain, around 150-160, so utilisation stays under about 97 percent. You will see a lower FPS number and dramatically better input latency. Combine with Reflex set to On plus Boost. Run the Fortnite settings module for the full configuration."
+                Title    = "$($gpu.Name) driving a $refresh Hz display -- you are GPU bound in real matches"
+                Detail   = "This is almost certainly the root cause of your input delay. When the GPU sits at 99-100 percent utilisation, frames queue ahead of the display and every queued frame adds latency to your controller input. It explains exactly why Creative feels instant at 240 FPS while a real match feels awful at 200: in Creative the GPU has headroom and the queue stays empty. THE FIX IS COUNTERINTUITIVE -- cap your frame rate BELOW what the GPU can sustain, around 150-160, so utilisation stays under about 97 percent. You will see a lower FPS number and dramatically better input latency. Combine with Reflex set to On plus Boost. Run the Fortnite settings module for the full configuration."
             })
         }
     }

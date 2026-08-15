@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    FortressOne — a reversible Windows tuning tool for a Fortnite-only machine.
+    FortressOne -- a reversible Windows tuning tool for a Fortnite-only machine.
 
 .DESCRIPTION
     Run with no arguments for the interactive menu. Every command is also
@@ -284,7 +284,7 @@ function Invoke-FOApplyTier {
 
     if ($DryRun) {
         Write-Host ''
-        Write-Host '  DRY RUN — nothing will be written.' -ForegroundColor Cyan
+        Write-Host '  DRY RUN -- nothing will be written.' -ForegroundColor Cyan
         $result = Invoke-FOApply -Tweaks $tweaks -DryRun -Description "Dry run: $Tier"
         Write-FOResultTable -Result $result
         return $result

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    FortressOne tweak engine — loads, validates, applies, verifies and reverts tweaks.
+    FortressOne tweak engine -- loads, validates, applies, verifies and reverts tweaks.
 .DESCRIPTION
     The engine is deliberately the only component permitted to mutate system
     state, and it always does so in the same order:
@@ -46,7 +46,7 @@ function Import-FOTweaks {
 
     foreach ($file in (Get-ChildItem -LiteralPath $dir -Filter '*.json' | Sort-Object Name)) {
         try {
-            $doc = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
+            $doc = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
         } catch {
             throw "Tweak file '$($file.Name)' is not valid JSON: $($_.Exception.Message)"
         }
@@ -159,7 +159,7 @@ function Import-FOProtection {
         throw "Protection list missing: $path. FortressOne will not run without it."
     }
 
-    $script:Protection = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    $script:Protection = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
     return $script:Protection
 }
 
@@ -169,7 +169,7 @@ function Test-FOActionPermitted {
         Hard veto against touching anything on the protection list.
     .DESCRIPTION
         This exists because the debloat engine takes user-supplied selections.
-        A user can ask FortressOne to remove almost anything — but not the small
+        A user can ask FortressOne to remove almost anything -- but not the small
         set of components that Fortnite, Easy Anti-Cheat, the XInput controller
         stack, networking, or the ability to boot Windows actually depend on.
 
@@ -296,7 +296,7 @@ function Get-FOTweakStatus {
         Compares a tweak's desired state against the machine's live state.
     .DESCRIPTION
         Returns Applied / NotApplied / Partial / Unknown. This is read from the
-        SYSTEM, not from the journal — so it detects drift, changes made by
+        SYSTEM, not from the journal -- so it detects drift, changes made by
         Windows Update, and changes made by other tools.
     #>
     [CmdletBinding()]
@@ -397,7 +397,7 @@ function Invoke-FOApply {
             try {
                 $prior = Get-FOTargetState -Action $action
             } catch {
-                $failed = "read failed for $($action.provider):$($action.name) — $($_.Exception.Message)"
+                $failed = "read failed for $($action.provider):$($action.name) -- $($_.Exception.Message)"
                 break
             }
 
@@ -458,7 +458,7 @@ function Invoke-FOApply {
             try {
                 Set-FOTargetState -Action $action
             } catch {
-                $writeError = "$($action.provider):$($action.name) — $($_.Exception.Message)"
+                $writeError = "$($action.provider):$($action.name) -- $($_.Exception.Message)"
                 Write-FOLog -Level Error -Message "Write failed in $($tweak.id)" -Data @{ error = $writeError }
                 break
             }
@@ -578,7 +578,7 @@ function Invoke-FORevert {
             try {
                 Reset-FOTargetState -Entry $entries[$i]
             } catch {
-                $null = $errors.Add("$($entries[$i].provider):$($entries[$i].name) — $($_.Exception.Message)")
+                $null = $errors.Add("$($entries[$i].provider):$($entries[$i].name) -- $($_.Exception.Message)")
             }
         }
 
@@ -587,7 +587,7 @@ function Invoke-FORevert {
             $null = $results.Add([pscustomobject]@{
                 TweakId = $tweakId; Outcome = 'PartiallyReverted'; Detail = ($errors -join '; ')
             })
-            # Deliberately NOT recorded as reverted — it stays in the applied
+            # Deliberately NOT recorded as reverted -- it stays in the applied
             # index so the user can retry rather than silently losing the record.
             continue
         }

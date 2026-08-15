@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    FortressOne state providers — read/write adapters for each kind of Windows state.
+    FortressOne state providers -- read/write adapters for each kind of Windows state.
 .DESCRIPTION
     Every provider implements the same three-verb contract:
 
@@ -9,7 +9,7 @@
         Reset-FOTargetState -> restores a captured prior state (including absence)
 
     Because the engine only ever talks to this contract, adding a new class of
-    tweak means adding one provider here — the journal, revert, dry-run, and
+    tweak means adding one provider here -- the journal, revert, dry-run, and
     verification logic all work on it for free.
 
     IMPORTANT DESIGN RULE: providers never decide policy. They do not know which
@@ -194,7 +194,7 @@ function Get-FOScheduledTaskState {
         $result.Exists = $true
         $result.Value = [string]$task.State   # Ready | Disabled | Running
     } catch {
-        # Task genuinely absent on this SKU — not an error worth surfacing.
+        # Task genuinely absent on this SKU -- not an error worth surfacing.
     }
     return $result
 }
@@ -390,7 +390,7 @@ function Set-FONetAdapterState {
 function Get-FOPrimaryAdapter {
     <#
     .SYNOPSIS
-        Returns the wired adapter actually carrying traffic — the one that
+        Returns the wired adapter actually carrying traffic -- the one that
         matters for game latency, not a virtual or disconnected one.
     #>
     [CmdletBinding()]
@@ -600,7 +600,7 @@ function Reset-FOTargetState {
     .DESCRIPTION
         This is the entire revert mechanism. It deliberately distinguishes
         "restore the old value" from "remove the value because it did not exist
-        before" — see the note in FO.Journal.psm1 for why that matters.
+        before" -- see the note in FO.Journal.psm1 for why that matters.
     #>
     [CmdletBinding()]
     param([Parameter(Mandatory)] $Entry)
@@ -659,7 +659,7 @@ function Reset-FOTargetState {
         }
         'defenderexclusion' {
             # If the exclusion existed before we ran, leave it. If it did not,
-            # remove the one we added — do not strip exclusions the user set up
+            # remove the one we added -- do not strip exclusions the user set up
             # themselves for some other program.
             if (-not $priorExists) {
                 Set-FODefenderExclusionState -Path $Entry.name -Value $null

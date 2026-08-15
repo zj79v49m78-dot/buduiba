@@ -8,7 +8,7 @@
     WHAT IS ACTUALLY WRONG (the render queue)
     -----------------------------------------
     When the GPU cannot keep up with the frames the CPU is submitting, the
-    frames do not simply arrive slower — they QUEUE. The CPU runs ahead,
+    frames do not simply arrive slower -- they QUEUE. The CPU runs ahead,
     submitting work the GPU has not started yet. By the time a frame reaches
     the display it may have been sitting in that queue for several frame
     intervals, and crucially, the controller input that produced it was sampled
@@ -33,7 +33,7 @@
 
     A NOTE ON WHAT THIS MODULE WILL NOT DO
     --------------------------------------
-    It writes legitimate video settings to GameUserSettings.ini — the same
+    It writes legitimate video settings to GameUserSettings.ini -- the same
     values you could set through the game's own options menu. It does NOT write
     Engine.ini rendering overrides that strip foliage, disable fog, or otherwise
     alter what you can see relative to other players. Those are config exploits.
@@ -76,7 +76,7 @@ function Get-FOFortnitePaths {
     if (Test-Path -LiteralPath $manifestDir) {
         foreach ($file in (Get-ChildItem -LiteralPath $manifestDir -Filter '*.item' -ErrorAction SilentlyContinue)) {
             try {
-                $manifest = Get-Content -LiteralPath $file.FullName -Raw | ConvertFrom-Json
+                $manifest = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
                 if ($manifest.DisplayName -match 'Fortnite' -or $manifest.MandatoryAppFolderName -eq 'FortniteGame') {
                     $result.InstallDir = $manifest.InstallLocation
                     break
@@ -231,7 +231,7 @@ function Get-FORecommendedFrameCap {
     .PARAMETER ObservedLowFps
         Your 1% low FPS in a real match, if you know it. This is the better
         input, because the queue fills during the WORST moments, not the average
-        ones — and the worst moments are exactly when you need input fidelity.
+        ones -- and the worst moments are exactly when you need input fidelity.
     #>
     [CmdletBinding()]
     param(
@@ -260,7 +260,7 @@ function Get-FORecommendedFrameCap {
         # fills even in the worst moments of a match.
         $cap = [math]::Floor($ObservedLowFps * 0.95)
         $basis = "1% low FPS ($ObservedLowFps)"
-        $null = $reasoning.Add("Calibrated against your 1% low of $ObservedLowFps FPS. Capping at 95 percent of that ($cap) means the GPU keeps headroom even during your worst frames — which is exactly when the render queue would otherwise fill and your input would feel worst.")
+        $null = $reasoning.Add("Calibrated against your 1% low of $ObservedLowFps FPS. Capping at 95 percent of that ($cap) means the GPU keeps headroom even during your worst frames -- which is exactly when the render queue would otherwise fill and your input would feel worst.")
     }
     elseif ($ObservedAverageFps -gt 0) {
         # Without a 1% low figure, 85% of average is a reasonable proxy, since
@@ -285,13 +285,13 @@ function Get-FORecommendedFrameCap {
         }
         $cap = [math]::Min($estimate, $refreshCeiling)
         $basis = "estimated from GPU model ($($gpu.Name))"
-        $null = $reasoning.Add("No measured FPS supplied, so this is estimated from your GPU ($($gpu.Name)) in Performance Mode at 1080p. This is a STARTING POINT, not an answer — measure your actual in-match FPS and re-run this to calibrate properly.")
+        $null = $reasoning.Add("No measured FPS supplied, so this is estimated from your GPU ($($gpu.Name)) in Performance Mode at 1080p. This is a STARTING POINT, not an answer -- measure your actual in-match FPS and re-run this to calibrate properly.")
     }
 
     $cap = [math]::Min($cap, $refreshCeiling)
     $cap = [math]::Max($cap, 60)
 
-    $null = $reasoning.Add("Final cap: $cap FPS. Set this both in Fortnite's own frame rate limit AND in the NVIDIA Control Panel's Max Frame Rate for Fortnite — belt and braces, because the two limiters behave slightly differently and having both prevents overshoot.")
+    $null = $reasoning.Add("Final cap: $cap FPS. Set this both in Fortnite's own frame rate limit AND in the NVIDIA Control Panel's Max Frame Rate for Fortnite -- belt and braces, because the two limiters behave slightly differently and having both prevents overshoot.")
 
     return [pscustomobject]@{
         RecommendedCap = $cap
@@ -310,7 +310,7 @@ function Set-FOFortniteSettings {
     .SYNOPSIS
         Writes competitive video settings to GameUserSettings.ini.
     .DESCRIPTION
-        Backs up first, always. The game must not be running — it rewrites this
+        Backs up first, always. The game must not be running -- it rewrites this
         file on exit and will overwrite anything set while it is open.
     #>
     [CmdletBinding()]
@@ -323,7 +323,7 @@ function Set-FOFortniteSettings {
     )
 
     if (Get-Process -Name 'FortniteClient-Win64-Shipping' -ErrorAction SilentlyContinue) {
-        throw 'Fortnite is running. Close it completely before changing settings — the game rewrites this file on exit and would discard the changes.'
+        throw 'Fortnite is running. Close it completely before changing settings -- the game rewrites this file on exit and would discard the changes.'
     }
 
     $paths = Get-FOFortnitePaths
@@ -418,7 +418,7 @@ function New-FOFortniteDefenderTweak {
         tier           = 'aggressive'
         impact         = 'high'
         requiresReboot = $false
-        rationale      = "Excludes $($targets -join '; ') from real-time scanning. Fortnite streams thousands of asset reads per match and each one otherwise passes through the Defender filter driver. This captures nearly all of the benefit of disabling Defender while leaving the rest of the machine protected — it is the better trade by a wide margin."
+        rationale      = "Excludes $($targets -join '; ') from real-time scanning. Fortnite streams thousands of asset reads per match and each one otherwise passes through the Defender filter driver. This captures nearly all of the benefit of disabling Defender while leaving the rest of the machine protected -- it is the better trade by a wide margin."
         actions        = @($actions)
         applicable     = $true
         inapplicableReason = $null

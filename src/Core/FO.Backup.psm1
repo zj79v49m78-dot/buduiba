@@ -3,7 +3,7 @@
     System-level safety net: restore points and registry exports.
 .DESCRIPTION
     The journal can undo everything FortressOne does. These backups exist for
-    everything FortressOne did NOT do — a Windows update that lands badly, a
+    everything FortressOne did NOT do -- a Windows update that lands badly, a
     driver installed the same afternoon, or the user editing something manually
     after the fact. Defence in depth: the journal is the precise instrument, the
     restore point is the blunt one.

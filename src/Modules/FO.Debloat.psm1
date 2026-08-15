@@ -22,12 +22,12 @@
       Desktop (Win32)    NOT REVERSIBLE BY THIS TOOL. Uninstalling runs the
                          program's own uninstaller. FortressOne will show you
                          what is installed, size it, and tell you what is safe
-                         to remove — but it deliberately does not run mass
+                         to remove -- but it deliberately does not run mass
                          silent uninstalls. See the note below.
 
     WHY THERE IS NO "REMOVE EVERYTHING" BUTTON
     ------------------------------------------
-    Not squeamishness — the veto list exists precisely so aggressive removal is
+    Not squeamishness -- the veto list exists precisely so aggressive removal is
     survivable. The reason is that a blind sweep cannot distinguish a redundant
     vendor utility from the Visual C++ runtime that Fortnite links against, the
     chipset package that governs your USB and PCIe behaviour, or the driver
@@ -182,10 +182,10 @@ function Get-FOBloatAssessment {
         Scores every installed item against the catalog and the protection list.
     .DESCRIPTION
         Verdicts:
-          Protected  — on the veto list. Will not be removed under any tier.
-          Keep       — recognised as useful or as a dependency.
-          Bloat      — recognised as removable with no impact on the game.
-          Review     — unrecognised. YOU decide. Defaulting these to "remove"
+          Protected  -- on the veto list. Will not be removed under any tier.
+          Keep       -- recognised as useful or as a dependency.
+          Bloat      -- recognised as removable with no impact on the game.
+          Review     -- unrecognised. YOU decide. Defaulting these to "remove"
                        is exactly how debloat scripts break machines, so they
                        are never auto-selected.
     #>
@@ -195,12 +195,12 @@ function Get-FOBloatAssessment {
     if (-not $Inventory) { $Inventory = Get-FOInstalledInventory }
 
     $catalogPath = Join-Path $Global:FO.AppRoot 'data\bloat-catalog.json'
-    $catalog = Get-Content -LiteralPath $catalogPath -Raw | ConvertFrom-Json
+    $catalog = Get-Content -LiteralPath $catalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $protection = Import-FOProtection
 
     $assessed = foreach ($item in $Inventory) {
         $verdict = 'Review'
-        $reason = 'Not recognised. FortressOne will not guess about software it does not know — decide this one yourself.'
+        $reason = 'Not recognised. FortressOne will not guess about software it does not know -- decide this one yourself.'
 
         # Protection wins over everything else.
         foreach ($guard in $protection.applications) {
@@ -253,7 +253,7 @@ function Remove-FOAppxPackage {
         Removes Store packages, recording exactly what was removed.
     .DESCRIPTION
         Writes a removal manifest before touching anything, so you always have a
-        precise record of what to reinstall. Removal is not journal-revertible —
+        precise record of what to reinstall. Removal is not journal-revertible --
         this manifest is the recovery path, and it is written first for the same
         reason the journal is written before any registry write.
     #>
@@ -422,7 +422,7 @@ function Get-FODebloatReport {
     $null = $lines.Add('NOTES ON REVERSIBILITY')
     $null = $lines.Add('-' * 72)
     foreach ($note in @(
-        'Startup entries are fully reversible — the exact command line is journaled.',
+        'Startup entries are fully reversible -- the exact command line is journaled.',
         'Store apps are recorded to a removal manifest with reinstall commands, but removal itself is not undoable from the journal.',
         'Desktop applications are listed and assessed but NOT removed automatically. Uninstall the ones you agree with through Settings, so their own uninstallers run properly and leave the machine consistent.'
     )) {
