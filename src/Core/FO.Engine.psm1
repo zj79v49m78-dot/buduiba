@@ -89,7 +89,7 @@ function Test-FOTweakDefinition {
     $required = @('id', 'name', 'category', 'risk', 'tier', 'impact', 'rationale', 'actions')
 
     foreach ($field in $required) {
-        if ($Tweak.PSObject.Properties.Name -notcontains $field) {
+        if ((-not (Test-FOHasProperty -InputObject $Tweak -Name $field))) {
             $null = $problems.Add("[$SourceFile] tweak missing required field '$field'")
         }
     }
@@ -116,25 +116,25 @@ function Test-FOTweakDefinition {
 
     $validProviders = @('registry', 'service', 'scheduledtask', 'power', 'tcp', 'netadapter', 'bcd', 'defenderexclusion')
     foreach ($action in $Tweak.actions) {
-        if ($action.PSObject.Properties.Name -notcontains 'provider') {
+        if ((-not (Test-FOHasProperty -InputObject $action -Name 'provider'))) {
             $null = $problems.Add("[$SourceFile] $($Tweak.id): action missing 'provider'")
             continue
         }
         if ($action.provider -notin $validProviders) {
             $null = $problems.Add("[$SourceFile] $($Tweak.id): unknown provider '$($action.provider)'")
         }
-        if ($action.PSObject.Properties.Name -notcontains 'name') {
+        if ((-not (Test-FOHasProperty -InputObject $action -Name 'name'))) {
             $null = $problems.Add("[$SourceFile] $($Tweak.id): action missing 'name'")
         }
-        if ($action.provider -eq 'registry' -and $action.PSObject.Properties.Name -notcontains 'path') {
+        if ($action.provider -eq 'registry' -and (-not (Test-FOHasProperty -InputObject $action -Name 'path'))) {
             $null = $problems.Add("[$SourceFile] $($Tweak.id): registry action missing 'path'")
         }
-        if ($action.provider -eq 'scheduledtask' -and $action.PSObject.Properties.Name -notcontains 'taskPath') {
+        if ($action.provider -eq 'scheduledtask' -and (-not (Test-FOHasProperty -InputObject $action -Name 'taskPath'))) {
             $null = $problems.Add("[$SourceFile] $($Tweak.id): scheduledtask action missing 'taskPath'")
         }
         if ($action.provider -eq 'power') {
             foreach ($f in @('subgroup', 'setting')) {
-                if ($action.PSObject.Properties.Name -notcontains $f) {
+                if ((-not (Test-FOHasProperty -InputObject $action -Name $f))) {
                     $null = $problems.Add("[$SourceFile] $($Tweak.id): power action missing '$f'")
                 }
             }
@@ -215,14 +215,14 @@ function Test-FOTweakApplicable {
     [CmdletBinding()]
     param([Parameter(Mandatory)] $Tweak)
 
-    if ($Tweak.PSObject.Properties.Name -contains 'os' -and $Tweak.os) {
+    if ((Test-FOHasProperty -InputObject $Tweak -Name 'os') -and $Tweak.os) {
         $major = if ($Global:FO.System.IsWindows11) { '11' } else { '10' }
         if ($Tweak.os -notcontains $major) {
             return @{ Applicable = $false; Reason = "targets Windows $($Tweak.os -join '/') only" }
         }
     }
 
-    if ($Tweak.PSObject.Properties.Name -contains 'requires' -and $Tweak.requires) {
+    if ((Test-FOHasProperty -InputObject $Tweak -Name 'requires') -and $Tweak.requires) {
         foreach ($req in $Tweak.requires) {
             switch ($req) {
                 'nvidia' {
@@ -404,7 +404,7 @@ function Invoke-FOApply {
             $entry = [ordered]@{
                 provider    = $action.provider
                 name        = $action.name
-                target      = if ($action.PSObject.Properties.Name -contains 'path') { $action.path } else { $action.name }
+                target      = if ((Test-FOHasProperty -InputObject $action -Name 'path')) { $action.path } else { $action.name }
                 priorExists = $prior.Exists
                 priorValue  = $prior.Value
                 newValue    = $action.value
@@ -418,7 +418,7 @@ function Invoke-FOApply {
             if ($action.provider -eq 'power') {
                 $entry.subgroup = $action.subgroup
                 $entry.setting = $action.setting
-                $entry.powerSource = if ($action.PSObject.Properties.Name -contains 'powerSource') { $action.powerSource } else { 'AC' }
+                $entry.powerSource = if ((Test-FOHasProperty -InputObject $action -Name 'powerSource')) { $action.powerSource } else { 'AC' }
             }
 
             $null = $entries.Add([pscustomobject]$entry)
@@ -478,7 +478,7 @@ function Invoke-FOApply {
             continue
         }
 
-        if (($tweak.PSObject.Properties.Name -contains 'requiresReboot') -and $tweak.requiresReboot) {
+        if (((Test-FOHasProperty -InputObject $tweak -Name 'requiresReboot')) -and $tweak.requiresReboot) {
             $rebootNeeded = $true
         }
 
@@ -595,7 +595,7 @@ function Invoke-FORevert {
         Write-FOLog -Level Info -Message "REVERTED $tweakId" -Data @{ targets = $entries.Count }
 
         $recordName = $tweakId
-        if (($record.PSObject.Properties.Name -contains 'tweakName') -and $record.tweakName) {
+        if (((Test-FOHasProperty -InputObject $record -Name 'tweakName')) -and $record.tweakName) {
             $recordName = $record.tweakName
         }
         Add-FOTransactionRecord -Transaction $transaction -TweakId $tweakId `

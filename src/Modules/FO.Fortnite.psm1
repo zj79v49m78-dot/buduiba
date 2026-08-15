@@ -165,6 +165,35 @@ function Write-FOIniFile {
     Set-Content -LiteralPath $Path -Value ($output -join [Environment]::NewLine) -Encoding UTF8 -Force
 }
 
+function Get-FOIniValue {
+    <#
+    .SYNOPSIS
+        Reads a key, preferring a named section but falling back to any section.
+    .DESCRIPTION
+        Fortnite does not write every setting to GameUserSettings.ini until it
+        has had reason to, and it has moved keys between sections across
+        versions. Scanning the other sections as a fallback means the report
+        says "not set" only when the key genuinely is absent everywhere, rather
+        than when it has simply moved.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] $Ini,
+        [Parameter(Mandatory)] [string] $PreferredSection,
+        [Parameter(Mandatory)] [string] $Key
+    )
+
+    if ($Ini.Contains($PreferredSection) -and $Ini[$PreferredSection].Contains($Key)) {
+        return $Ini[$PreferredSection][$Key]
+    }
+
+    foreach ($section in $Ini.Keys) {
+        if ($Ini[$section].Contains($Key)) { return $Ini[$section][$Key] }
+    }
+
+    return $null
+}
+
 function Backup-FOFortniteConfig {
     <#
     .SYNOPSIS
@@ -448,18 +477,21 @@ function Get-FOFortniteReport {
     $ini = Read-FOIniFile -Path $paths.GameUserSettings
     $engineSection = '/Script/Engine.GameUserSettings'
 
-    $currentCap = if ($ini.Contains($engineSection) -and $ini[$engineSection].Contains('FrameRateLimit')) {
-        [math]::Round([double]$ini[$engineSection]['FrameRateLimit'])
-    } else { 0 }
+    $capRaw = Get-FOIniValue -Ini $ini -PreferredSection $engineSection -Key 'FrameRateLimit'
+    $currentCap = if ($null -ne $capRaw) { [math]::Round([double]$capRaw) } else { 0 }
 
-    $currentMode = if ($ini.Contains($engineSection) -and $ini[$engineSection].Contains('FullscreenMode')) {
-        switch ([int]$ini[$engineSection]['FullscreenMode']) {
+    $modeRaw = Get-FOIniValue -Ini $ini -PreferredSection $engineSection -Key 'FullscreenMode'
+    $modeIsSet = ($null -ne $modeRaw)
+    $currentMode = if ($modeIsSet) {
+        switch ([int]$modeRaw) {
             0 { 'Fullscreen (exclusive)' }
             1 { 'Windowed Fullscreen' }
             2 { 'Windowed' }
-            default { 'Unknown' }
+            default { "unrecognised value '$modeRaw'" }
         }
-    } else { 'Unknown' }
+    } else {
+        'not written yet'
+    }
 
     $null = $lines.Add("  Config      : $($paths.GameUserSettings)")
     if ($paths.InstallDir) { $null = $lines.Add("  Install     : $($paths.InstallDir)") }
@@ -493,7 +525,13 @@ function Get-FOFortniteReport {
         }
     }
 
-    if ($currentMode -ne 'Fullscreen (exclusive)') {
+    if (-not $modeIsSet) {
+        $null = $lines.Add('')
+        $null = $lines.Add('  [INFO] Window mode is not recorded in the config yet.')
+        foreach ($wrapped in (Split-FOText -Width 66 -Text 'Fortnite only writes a setting once it has had reason to, so a sparse config is normal rather than a fault. Set Window Mode to Fullscreen in the game, or let this tool write it, and it will appear here afterwards. Exclusive fullscreen gives the shortest present path and lets the driver bypass the desktop compositor; windowed and borderless both route through DWM and add up to a frame of latency.')) {
+            $null = $lines.Add("        $wrapped")
+        }
+    } elseif ($currentMode -ne 'Fullscreen (exclusive)') {
         $null = $lines.Add('')
         $null = $lines.Add("  [WARN] Window mode is '$currentMode', not exclusive fullscreen.")
         foreach ($wrapped in (Split-FOText -Width 66 -Text 'Exclusive fullscreen gives the shortest present path and lets the driver bypass the desktop compositor. Windowed and borderless both route through DWM, adding up to a frame of latency.')) {
@@ -505,7 +543,7 @@ function Get-FOFortniteReport {
 }
 
 Export-ModuleMember -Function `
-    Get-FOFortnitePaths, Read-FOIniFile, Write-FOIniFile, `
+    Get-FOFortnitePaths, Read-FOIniFile, Write-FOIniFile, Get-FOIniValue, `
     Backup-FOFortniteConfig, Restore-FOFortniteConfig, `
     Get-FORecommendedFrameCap, Set-FOFortniteSettings, `
     New-FOFortniteDefenderTweak, Get-FOFortniteReport

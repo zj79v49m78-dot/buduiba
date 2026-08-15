@@ -232,7 +232,7 @@ function Save-FOTransaction {
     # ConvertFrom-Json yields PSCustomObject; convert the tweaks map to a
     # hashtable so entries can be added and removed.
     $tweaks = @{}
-    if ($index.PSObject.Properties.Name -contains 'tweaks' -and $index.tweaks) {
+    if ((Test-FOHasProperty -InputObject $index -Name 'tweaks') -and $index.tweaks) {
         foreach ($prop in $index.tweaks.PSObject.Properties) {
             $tweaks[$prop.Name] = $prop.Value
         }
@@ -278,7 +278,7 @@ function Get-FOAppliedTweaks {
 
     $index = Read-FOJournalIndex
     $result = @{}
-    if ($index.PSObject.Properties.Name -contains 'tweaks' -and $index.tweaks) {
+    if ((Test-FOHasProperty -InputObject $index -Name 'tweaks') -and $index.tweaks) {
         foreach ($prop in $index.tweaks.PSObject.Properties) {
             $result[$prop.Name] = $prop.Value
         }

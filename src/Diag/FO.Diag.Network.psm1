@@ -355,7 +355,10 @@ function Get-FONetworkReport {
             $null = $lines.Add('-' * 72)
             $null = $lines.Add("  Idle latency        : $($bloat.IdleMedianMs) ms (best sample $($bloat.IdleMinMs) ms)")
             $null = $lines.Add("  Latency under load  : $($bloat.LoadedMedianMs) ms (worst $($bloat.LoadedMaxMs) ms)")
-            $null = $lines.Add("  Increase under load : +$($bloat.IncreaseMs) ms")
+            # A negative delta is normal and means the loaded samples happened
+            # to be faster than the idle ones -- do not print it as "+-0.4".
+            $sign = if ($bloat.IncreaseMs -ge 0) { '+' } else { '' }
+            $null = $lines.Add("  Increase under load : $sign$($bloat.IncreaseMs) ms")
             $null = $lines.Add("  Grade               : $($bloat.Grade)")
             $null = $lines.Add('')
 
@@ -378,12 +381,12 @@ function Get-FONetworkReport {
         $regions = Test-FORegionLatency
         $null = $lines.Add('REGION LATENCY')
         $null = $lines.Add('-' * 72)
-        $null = $lines.Add(('  {0,-13} {1,-24} {2,>9} {3,>9}' -f 'Region', 'Datacentre', 'Best ms', 'Jitter'))
+        $null = $lines.Add(('  {0,-13} {1,-24} {2,9} {3,9}' -f 'Region', 'Datacentre', 'Best ms', 'Jitter'))
 
         foreach ($r in $regions) {
             $best = if ($r.Reachable) { "$($r.MinMs)" } else { 'unreachable' }
             $jit  = if ($r.Reachable) { "$($r.JitterMs)" } else { '-' }
-            $null = $lines.Add(('  {0,-13} {1,-24} {2,>9} {3,>9}' -f $r.Region, $r.Label, $best, $jit))
+            $null = $lines.Add(('  {0,-13} {1,-24} {2,9} {3,9}' -f $r.Region, $r.Label, $best, $jit))
         }
         $null = $lines.Add('')
 

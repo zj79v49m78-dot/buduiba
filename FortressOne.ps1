@@ -131,6 +131,7 @@ if (-not (Test-Path -LiteralPath $Global:FO.DataRoot)) {
 }
 
 $modules = @(
+    'src\Core\FO.Common.psm1'
     'src\Core\FO.Logging.psm1'
     'src\Core\FO.Journal.psm1'
     'src\Core\FO.Providers.psm1'

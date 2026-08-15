@@ -68,27 +68,27 @@ function Get-FOInstalledInventory {
                 $props = Get-ItemProperty -LiteralPath $key.PSPath -ErrorAction Stop
             } catch { continue }
 
-            if ($props.PSObject.Properties.Name -notcontains 'DisplayName') { continue }
+            if ((-not (Test-FOHasProperty -InputObject $props -Name 'DisplayName'))) { continue }
             if ([string]::IsNullOrWhiteSpace($props.DisplayName)) { continue }
 
             # Skip update entries and system components, which are not really
             # "applications" and clutter the list badly.
-            if ($props.PSObject.Properties.Name -contains 'SystemComponent' -and $props.SystemComponent -eq 1) { continue }
+            if ((Test-FOHasProperty -InputObject $props -Name 'SystemComponent') -and $props.SystemComponent -eq 1) { continue }
             if ($props.DisplayName -match '^(Security Update|Update for|Hotfix)') { continue }
 
             $sizeMb = 0
-            if ($props.PSObject.Properties.Name -contains 'EstimatedSize' -and $props.EstimatedSize) {
+            if ((Test-FOHasProperty -InputObject $props -Name 'EstimatedSize') -and $props.EstimatedSize) {
                 $sizeMb = [math]::Round($props.EstimatedSize / 1024, 1)
             }
 
             $null = $items.Add([pscustomobject]@{
                 Type            = 'Win32'
                 Name            = $props.DisplayName
-                Publisher       = if ($props.PSObject.Properties.Name -contains 'Publisher') { $props.Publisher } else { $null }
-                Version         = if ($props.PSObject.Properties.Name -contains 'DisplayVersion') { $props.DisplayVersion } else { $null }
+                Publisher       = if ((Test-FOHasProperty -InputObject $props -Name 'Publisher')) { $props.Publisher } else { $null }
+                Version         = if ((Test-FOHasProperty -InputObject $props -Name 'DisplayVersion')) { $props.DisplayVersion } else { $null }
                 SizeMb          = $sizeMb
                 Identifier      = $key.PSChildName
-                UninstallString = if ($props.PSObject.Properties.Name -contains 'UninstallString') { $props.UninstallString } else { $null }
+                UninstallString = if ((Test-FOHasProperty -InputObject $props -Name 'UninstallString')) { $props.UninstallString } else { $null }
                 Reversible      = $false
             })
         }
@@ -192,7 +192,7 @@ function Get-FOBloatAssessment {
     [CmdletBinding()]
     param([array] $Inventory)
 
-    if (-not $Inventory) { $Inventory = Get-FOInstalledInventory }
+    if (-not $Inventory) { $Inventory = @(Get-FOInstalledInventory) }
 
     $catalogPath = Join-Path $Global:FO.AppRoot 'data\bloat-catalog.json'
     $catalog = Get-Content -LiteralPath $catalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -387,8 +387,8 @@ function Get-FODebloatReport {
     [CmdletBinding()]
     param()
 
-    $assessment = Get-FOBloatAssessment
-    $startup = Get-FOStartupInventory
+    $assessment = @(Get-FOBloatAssessment)
+    $startup = @(Get-FOStartupInventory)
 
     $lines = [System.Collections.ArrayList]::new()
     $null = $lines.Add('DEBLOAT ASSESSMENT')
@@ -407,7 +407,7 @@ function Get-FODebloatReport {
 
         foreach ($item in ($group | Sort-Object Name)) {
             $size = if ($item.SizeMb -gt 0) { "$($item.SizeMb) MB" } else { '' }
-            $null = $lines.Add(('  {0,-6} {1,-44} {2,>10}' -f $item.Type, $item.Name.Substring(0, [math]::Min(44, $item.Name.Length)), $size))
+            $null = $lines.Add(('  {0,-6} {1,-44} {2,10}' -f $item.Type, $item.Name.Substring(0, [math]::Min(44, $item.Name.Length)), $size))
         }
     }
 

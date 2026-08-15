@@ -74,6 +74,7 @@ $Global:FO = [ordered]@{
 }
 
 foreach ($module in @(
+    'src/Core/FO.Common.psm1'
     'src/Core/FO.Logging.psm1'
     'src/Core/FO.Journal.psm1'
     'src/Core/FO.Providers.psm1'
@@ -156,6 +157,102 @@ Test-Case 'All JSON reads specify an explicit encoding' {
     }
 
     Assert-Equal 0 $bad.Count "Get-Content without -Encoding: $($bad -join ', ')"
+}
+
+Test-Case 'No source file uses PSObject.Properties.Name member enumeration' {
+    # Projecting .Name across a PSMemberInfoCollection works on PowerShell 7 and
+    # throws PropertyNotFoundStrict on Windows PowerShell 5.1 under StrictMode.
+    # Test-FOHasProperty exists precisely to avoid it, so the pattern is banned.
+    $offenders = [System.Collections.ArrayList]::new()
+
+    Get-ChildItem -LiteralPath $repoRoot -Recurse -Include '*.ps1', '*.psm1' |
+        Where-Object { $_.Name -ne 'Test-FortressOne.ps1' } |
+        ForEach-Object {
+            $lineNumber = 0
+            foreach ($line in (Get-Content -LiteralPath $_.FullName -Encoding UTF8)) {
+                $lineNumber++
+                if ($line -match '\.PSObject\.Properties\.Name') {
+                    $null = $offenders.Add("$($_.Name):$lineNumber")
+                }
+            }
+        }
+
+    Assert-Equal 0 $offenders.Count "Use Test-FOHasProperty instead: $($offenders -join ', ')"
+}
+
+Test-Case 'Every composite format string in the codebase actually formats' {
+    # .NET alignment syntax is {index,width} where a negative width left-aligns.
+    # '{2,>9}' is NOT valid and throws FormatException at runtime -- which only
+    # surfaces when that particular report line is rendered, so it slipped
+    # through into a release. This scans every literal format string used with
+    # -f and proves it formats against dummy arguments.
+    $offenders = [System.Collections.ArrayList]::new()
+
+    Get-ChildItem -LiteralPath $repoRoot -Recurse -Include '*.ps1', '*.psm1' |
+        Where-Object { $_.Name -ne 'Test-FortressOne.ps1' } |
+        ForEach-Object {
+            $file = $_.Name
+            $lineNumber = 0
+            foreach ($line in (Get-Content -LiteralPath $_.FullName -Encoding UTF8)) {
+                $lineNumber++
+                foreach ($match in [regex]::Matches($line, "'([^']*\{\d+[^']*)'\s*-f")) {
+                    $format = $match.Groups[1].Value
+
+                    # Highest placeholder index determines how many args to pass.
+                    $indexes = [regex]::Matches($format, '\{(\d+)') |
+                        ForEach-Object { [int]$_.Groups[1].Value }
+                    if (-not $indexes) { continue }
+                    $argCount = (($indexes | Measure-Object -Maximum).Maximum) + 1
+
+                    $dummy = @(1..$argCount | ForEach-Object { 'x' })
+                    try {
+                        [string]::Format($format, $dummy) | Out-Null
+                    } catch {
+                        $null = $offenders.Add("${file}:${lineNumber} '$format' -- $($_.Exception.Message)")
+                    }
+                }
+            }
+        }
+
+    Assert-Equal 0 $offenders.Count "Invalid format string(s): $($offenders -join ' | ')"
+}
+
+# ---------------------------------------------------------------------------
+Write-Host ''
+Write-Host 'Common helpers' -ForegroundColor Cyan
+
+Test-Case 'Test-FOHasProperty finds a present property' {
+    $object = [pscustomobject]@{ Alpha = 1; Beta = 'two' }
+    Assert-True (Test-FOHasProperty -InputObject $object -Name 'Alpha')
+    Assert-True (Test-FOHasProperty -InputObject $object -Name 'Beta')
+}
+
+Test-Case 'Test-FOHasProperty returns false for a missing property' {
+    $object = [pscustomobject]@{ Alpha = 1 }
+    Assert-True (-not (Test-FOHasProperty -InputObject $object -Name 'Gamma'))
+}
+
+Test-Case 'Test-FOHasProperty tolerates null input' {
+    # Get-ItemProperty yields nothing for a registry key with no values, so
+    # callers legitimately pass null here.
+    Assert-True (-not (Test-FOHasProperty -InputObject $null -Name 'Anything'))
+}
+
+Test-Case 'Test-FOHasProperty handles a property whose value is null' {
+    $object = [pscustomobject]@{ Present = $null }
+    Assert-True (Test-FOHasProperty -InputObject $object -Name 'Present') 'A null-valued property still exists'
+}
+
+Test-Case 'ConvertTo-FOArray guarantees a countable array' {
+    Assert-Equal 0 (@() | ConvertTo-FOArray).Count 'Empty input did not yield an empty array'
+    Assert-Equal 1 (@('one') | ConvertTo-FOArray).Count 'Single item did not stay an array'
+    Assert-Equal 3 (@(1, 2, 3) | ConvertTo-FOArray).Count 'Multiple items were mangled'
+}
+
+Test-Case 'Get-FOPropertyValue falls back to the default' {
+    $object = [pscustomobject]@{ Present = 'yes' }
+    Assert-Equal 'yes' (Get-FOPropertyValue -InputObject $object -Name 'Present' -Default 'no')
+    Assert-Equal 'no' (Get-FOPropertyValue -InputObject $object -Name 'Absent' -Default 'no')
 }
 
 # ---------------------------------------------------------------------------
@@ -424,6 +521,28 @@ Test-Case 'INI parse and write round-trips without data loss' {
     # not recognise would quietly reset parts of the user's configuration.
     Assert-Equal '42' $reparsed['/Script/Engine.GameUserSettings']['SomeUnknownKeyWeDoNotUnderstand'] 'An unrecognised key was lost on rewrite'
     Assert-Equal 'False' $reparsed['/Script/Engine.GameUserSettings']['bUseVSync']
+}
+
+Test-Case 'INI lookup falls back to other sections' {
+    # Fortnite does not always write a key to the section we expect, and has
+    # moved keys between sections across versions. A miss must mean genuinely
+    # absent, not merely relocated.
+    $ini = [ordered]@{
+        '/Script/Engine.GameUserSettings' = [ordered]@{ 'FrameRateLimit' = '160.000000' }
+        'SomeOtherSection'                = [ordered]@{ 'FullscreenMode' = '0' }
+    }
+
+    Assert-Equal '160.000000' (Get-FOIniValue -Ini $ini -PreferredSection '/Script/Engine.GameUserSettings' -Key 'FrameRateLimit')
+    Assert-Equal '0' (Get-FOIniValue -Ini $ini -PreferredSection '/Script/Engine.GameUserSettings' -Key 'FullscreenMode') 'Fallback scan did not find a relocated key'
+    Assert-True ($null -eq (Get-FOIniValue -Ini $ini -PreferredSection '/Script/Engine.GameUserSettings' -Key 'NotPresentAnywhere')) 'A genuinely absent key should return null'
+}
+
+Test-Case 'INI lookup prefers the named section over a duplicate elsewhere' {
+    $ini = [ordered]@{
+        '/Script/Engine.GameUserSettings' = [ordered]@{ 'FrameRateLimit' = '160' }
+        'Stale'                           = [ordered]@{ 'FrameRateLimit' = '999' }
+    }
+    Assert-Equal '160' (Get-FOIniValue -Ini $ini -PreferredSection '/Script/Engine.GameUserSettings' -Key 'FrameRateLimit') 'Preferred section must win'
 }
 
 Test-Case 'Frame cap never exceeds the display refresh rate' {

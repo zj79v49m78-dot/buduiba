@@ -300,7 +300,7 @@ function Get-FOTcpGlobalState {
     # than netsh output, which is localised.
     try {
         $setting = Get-NetTCPSetting -SettingName 'Internet' -ErrorAction Stop
-        if ($setting.PSObject.Properties.Name -contains $Parameter) {
+        if ((Test-FOHasProperty -InputObject $setting -Name $Parameter)) {
             $result.Exists = $true
             $result.Value = [string]$setting.$Parameter
             return $result
@@ -309,7 +309,7 @@ function Get-FOTcpGlobalState {
 
     try {
         $global = Get-NetTCPSetting -ErrorAction Stop | Select-Object -First 1
-        if ($global -and $global.PSObject.Properties.Name -contains $Parameter) {
+        if ($global -and (Test-FOHasProperty -InputObject $global -Name $Parameter)) {
             $result.Exists = $true
             $result.Value = [string]$global.$Parameter
         }
@@ -530,7 +530,7 @@ function Get-FOTargetState {
             return (Get-FOScheduledTaskState -TaskPath $Action.taskPath -TaskName $Action.name)
         }
         'power' {
-            $src = if ($Action.PSObject.Properties.Name -contains 'powerSource') { $Action.powerSource } else { 'AC' }
+            $src = if ((Test-FOHasProperty -InputObject $Action -Name 'powerSource')) { $Action.powerSource } else { 'AC' }
             return (Get-FOPowerSettingState -SubgroupGuid $Action.subgroup -SettingGuid $Action.setting -PowerSource $src)
         }
         'tcp' {
@@ -561,18 +561,18 @@ function Set-FOTargetState {
 
     switch ($Action.provider) {
         'registry' {
-            $type = if ($Action.PSObject.Properties.Name -contains 'type') { $Action.type } else { 'DWord' }
+            $type = if ((Test-FOHasProperty -InputObject $Action -Name 'type')) { $Action.type } else { 'DWord' }
             Set-FORegistryState -Path (Expand-FORegistryPath $Action.path) -Name $Action.name -Value $Action.value -Type $type
         }
         'service' {
-            $stop = ($Action.PSObject.Properties.Name -contains 'stopNow') -and $Action.stopNow
+            $stop = ((Test-FOHasProperty -InputObject $Action -Name 'stopNow')) -and $Action.stopNow
             Set-FOServiceState -Name $Action.name -StartupType ([string]$Action.value) -StopNow:$stop
         }
         'scheduledtask' {
             Set-FOScheduledTaskState -TaskPath $Action.taskPath -TaskName $Action.name -State ([string]$Action.value)
         }
         'power' {
-            $src = if ($Action.PSObject.Properties.Name -contains 'powerSource') { $Action.powerSource } else { 'AC' }
+            $src = if ((Test-FOHasProperty -InputObject $Action -Name 'powerSource')) { $Action.powerSource } else { 'AC' }
             Set-FOPowerSettingState -SubgroupGuid $Action.subgroup -SettingGuid $Action.setting -Value ([int]$Action.value) -PowerSource $src
         }
         'tcp' {
@@ -612,14 +612,14 @@ function Reset-FOTargetState {
         'registry' {
             $path = Expand-FORegistryPath $Entry.target
             if ($priorExists) {
-                $kind = if ($Entry.PSObject.Properties.Name -contains 'priorKind' -and $Entry.priorKind) { $Entry.priorKind } else { 'DWord' }
+                $kind = if ((Test-FOHasProperty -InputObject $Entry -Name 'priorKind') -and $Entry.priorKind) { $Entry.priorKind } else { 'DWord' }
                 Set-FORegistryState -Path $path -Name $Entry.name -Value $priorValue -Type $kind
             } else {
                 if (Test-Path -LiteralPath $path) {
                     Remove-ItemProperty -LiteralPath $path -Name $Entry.name -Force -ErrorAction SilentlyContinue
                 }
                 # If FortressOne created the key itself and it is now empty, take it away too.
-                if (($Entry.PSObject.Properties.Name -contains 'keyCreated') -and $Entry.keyCreated -and (Test-Path -LiteralPath $path)) {
+                if (((Test-FOHasProperty -InputObject $Entry -Name 'keyCreated')) -and $Entry.keyCreated -and (Test-Path -LiteralPath $path)) {
                     $key = Get-Item -LiteralPath $path -ErrorAction SilentlyContinue
                     if ($key -and $key.ValueCount -eq 0 -and $key.SubKeyCount -eq 0) {
                         Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue
@@ -640,7 +640,7 @@ function Reset-FOTargetState {
         }
         'power' {
             if ($priorExists) {
-                $src = if ($Entry.PSObject.Properties.Name -contains 'powerSource' -and $Entry.powerSource) { $Entry.powerSource } else { 'AC' }
+                $src = if ((Test-FOHasProperty -InputObject $Entry -Name 'powerSource') -and $Entry.powerSource) { $Entry.powerSource } else { 'AC' }
                 Set-FOPowerSettingState -SubgroupGuid $Entry.subgroup -SettingGuid $Entry.setting -Value ([int]$priorValue) -PowerSource $src
             }
         }

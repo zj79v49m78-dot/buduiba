@@ -14,6 +14,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
+
+# Provides Test-FOHasProperty, which is used instead of member enumeration so
+# this script behaves the same on Windows PowerShell 5.1 as on PowerShell 7.
+Import-Module (Join-Path $repoRoot 'src/Core/FO.Common.psm1') -Force -DisableNameChecking
+
 $tweakDir = Join-Path $repoRoot 'data/tweaks'
 $outputPath = Join-Path $repoRoot 'docs/TWEAK-REFERENCE.md'
 
@@ -41,7 +46,7 @@ $allTweaks = [System.Collections.ArrayList]::new()
 foreach ($file in (Get-ChildItem -LiteralPath $tweakDir -Filter '*.json' | Sort-Object Name)) {
     $doc = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
     foreach ($tweak in $doc.tweaks) {
-        $reboot = if (($tweak.PSObject.Properties.Name -contains 'requiresReboot') -and $tweak.requiresReboot) { 'yes' } else { 'no' }
+        $reboot = if (((Test-FOHasProperty -InputObject $tweak -Name 'requiresReboot')) -and $tweak.requiresReboot) { 'yes' } else { 'no' }
         $null = $out.Add("| ``$($tweak.id)`` | $($tweak.tier) | $($tweak.risk) | $($tweak.impact) | $reboot |")
         $null = $allTweaks.Add([pscustomobject]@{ Pack = $doc.pack; File = $file.Name; Tweak = $tweak; Doc = $doc })
     }
@@ -78,10 +83,10 @@ foreach ($group in $packs) {
         $null = $out.Add('')
 
         $meta = @("**Tier:** $($tweak.tier)", "**Risk:** $($tweak.risk)", "**Impact:** $($tweak.impact)")
-        if (($tweak.PSObject.Properties.Name -contains 'requiresReboot') -and $tweak.requiresReboot) {
+        if (((Test-FOHasProperty -InputObject $tweak -Name 'requiresReboot')) -and $tweak.requiresReboot) {
             $meta += '**Requires restart**'
         }
-        if (($tweak.PSObject.Properties.Name -contains 'os') -and $tweak.os) {
+        if (((Test-FOHasProperty -InputObject $tweak -Name 'os')) -and $tweak.os) {
             $meta += "**Windows:** $($tweak.os -join ', ')"
         }
         $null = $out.Add(($meta -join ' &nbsp;-&nbsp; '))

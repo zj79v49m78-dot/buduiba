@@ -271,7 +271,7 @@ function Get-FOLatencyReport {
     $null = $lines.Add('MSI (Message Signaled Interrupts)')
     $null = $lines.Add('-' * 72)
 
-    $msiDevices = Get-FOMsiCapableDevices
+    $msiDevices = @(Get-FOMsiCapableDevices)
     if ($msiDevices.Count -eq 0) {
         $null = $lines.Add('  No MSI-capable PCI devices detected.')
     }
@@ -293,7 +293,7 @@ function Get-FOLatencyReport {
     $null = $lines.Add('USB power management')
     $null = $lines.Add('-' * 72)
 
-    $usbDevices = Get-FOUsbPowerDevices
+    $usbDevices = @(Get-FOUsbPowerDevices)
     $poweredDown = @($usbDevices | Where-Object { $_.EnhancedPm -eq 1 -or $_.SelectiveSuspend -eq 1 })
     $controllers = @($usbDevices | Where-Object { $_.LooksLikeController })
 
