@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 2,
+  "pack": "Telemetry",
+  "description": "Data collection, diagnostics and scheduled maintenance that runs on a timer with no regard for whether you are mid-match.",
+
+  "tweaks": [
+    {
+      "id": "tel.diagtrack.disable",
+      "name": "Disable Connected User Experiences and Telemetry",
+      "category": "telemetry",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": true,
+      "os": ["10", "11"],
+      "rationale": "DiagTrack is the main telemetry pipeline. It runs continuously, buffers to disk and uploads on a schedule that pays no attention to what you are doing. Nothing in Windows depends on it functionally. This is a clean win: real background work removed, no functionality lost.",
+      "actions": [
+        { "provider": "service", "name": "DiagTrack", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "dmwappushservice", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "diagnosticshub.standardcollector.service", "value": "Disabled", "stopNow": true }
+      ]
+    },
+    {
+      "id": "tel.policy.minimise",
+      "name": "Set telemetry policy to the minimum permitted",
+      "category": "telemetry",
+      "risk": "low",
+      "tier": "core",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Complements disabling the service by telling the components that generate telemetry not to bother collecting it in the first place. On consumer Windows editions the floor is 'Security' rather than truly off, so be aware this reduces rather than eliminates collection. Combined with the service being disabled, the practical result is that almost nothing is gathered or sent.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "AllowTelemetry", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection", "name": "AllowTelemetry", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection", "name": "DoNotShowFeedbackNotifications", "type": "DWord", "value": 1 }
+      ]
+    },
+    {
+      "id": "tel.advertising.disable",
+      "name": "Disable advertising ID and suggested content",
+      "category": "telemetry",
+      "risk": "low",
+      "tier": "core",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Content delivery and suggestion features periodically fetch and cache promotional material for the Start menu and lock screen. It is background network and disk activity for advertising you do not want on a machine that only runs one game.",
+      "actions": [
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo", "name": "Enabled", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SilentInstalledAppsEnabled", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SystemPaneSuggestionsEnabled", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "PreInstalledAppsEnabled", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "OemPreInstalledAppsEnabled", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "tel.errorreporting.disable",
+      "name": "Disable Windows Error Reporting",
+      "category": "telemetry",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "When something crashes, WER collects a dump and uploads it. Dump collection is heavy disk and CPU work, and a game crash is precisely the moment you want the machine free to relaunch rather than busy writing a report. Note the trade: if you later need to diagnose a crash, you will have fewer artefacts to work with.",
+      "actions": [
+        { "provider": "service", "name": "WerSvc", "value": "Disabled", "stopNow": true },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting", "name": "Disabled", "type": "DWord", "value": 1 }
+      ]
+    },
+    {
+      "id": "tel.tasks.disable-appraiser",
+      "name": "Disable compatibility appraiser and CEIP scheduled tasks",
+      "category": "telemetry",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "The Compatibility Appraiser is notorious for waking up and consuming sustained CPU while it inventories installed software. It has no schedule awareness of whether you are in a match. Along with the Customer Experience Improvement Program tasks, these are the background jobs most likely to be responsible for an unexplained mid-game stutter that never reproduces on demand.",
+      "actions": [
+        { "provider": "scheduledtask", "taskPath": "\\Microsoft\\Windows\\Application Experience\\", "name": "Microsoft Compatibility Appraiser", "value": "Disabled" },
+        { "provider": "scheduledtask", "taskPath": "\\Microsoft\\Windows\\Application Experience\\", "name": "ProgramDataUpdater", "value": "Disabled" },
+        { "provider": "scheduledtask", "taskPath": "\\Microsoft\\Windows\\Application Experience\\", "name": "StartupAppTask", "value": "Disabled" },
+        { "provider": "scheduledtask", "taskPath": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\", "name": "Consolidator", "value": "Disabled" },
+        { "provider": "scheduledtask", "taskPath": "\\Microsoft\\Windows\\Customer Experience Improvement Program\\", "name": "UsbCeip", "value": "Disabled" },
+        { "provider": "scheduledtask", "taskPath": "\\Microsoft\\Windows\\Autochk\\", "name": "Proxy", "value": "Disabled" }
+      ]
+    },
+    {
+      "id": "tel.tasks.disable-maintenance",
+      "name": "Disable opportunistic maintenance tasks",
+      "category": "telemetry",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "WinSAT re-runs system assessment benchmarks, the disk diagnostic collector samples SMART data, and the feedback client uploads diagnostics. All three are opportunistic — they run when Windows decides the machine looks idle, and Windows regularly decides that while you are in a lobby. Note that scheduled defragmentation is deliberately NOT disabled here: on an SSD that task issues TRIM, which you want to keep.",
+      "actions": [
+        { "provider": "scheduledtask", "taskPath": "\\Microsoft\\Windows\\Maintenance\\", "name": "WinSAT", "value": "Disabled" },
+        { "provider": "scheduledtask", "taskPath": "\\Microsoft\\Windows\\DiskDiagnostic\\", "name": "Microsoft-Windows-DiskDiagnosticDataCollector", "value": "Disabled" },
+        { "provider": "scheduledtask", "taskPath": "\\Microsoft\\Windows\\Feedback\\Siuf\\", "name": "DmClient", "value": "Disabled" },
+        { "provider": "scheduledtask", "taskPath": "\\Microsoft\\Windows\\Feedback\\Siuf\\", "name": "DmClientOnScenarioDownload", "value": "Disabled" },
+        { "provider": "scheduledtask", "taskPath": "\\Microsoft\\Windows\\Windows Error Reporting\\", "name": "QueueReporting", "value": "Disabled" }
+      ]
+    }
+  ]
+}

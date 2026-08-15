@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 2,
+  "pack": "Nuclear",
+  "description": "Maximum-aggression tier. Every tweak in this file has a genuine downside that is not merely theoretical. They are here because you asked for the ceiling to be this high, and each one states plainly what it costs you.",
+
+  "_read_this_first": "These are not 'more optimisation'. They are trades. Disabling Windows Update means you stop receiving security patches AND the driver and platform fixes that sometimes improve game performance. Disabling Defender means the machine is unprotected — and a machine used for downloading Fortnite configs, crosshair overlays and 'FPS boosters' from the internet is exactly the machine that gets compromised. Apply these knowing what you are buying.",
+
+  "tweaks": [
+    {
+      "id": "nuke.defender.realtime-off",
+      "name": "Disable Microsoft Defender real-time protection",
+      "category": "nuclear",
+      "risk": "high",
+      "tier": "nuclear",
+      "impact": "high",
+      "requiresReboot": true,
+      "os": ["10", "11"],
+      "rationale": "Real-time protection scans every file on access. Fortnite streams thousands of asset reads during a match and each one passes through the filter driver. Disabling it removes that overhead and is a measurable win on load times and asset-streaming hitches. THIS WILL NOT WORK ON ITS OWN IF TAMPER PROTECTION IS ENABLED — Windows will silently revert these values within minutes and the tool will report the tweak as drifted. You must first turn Tamper Protection off manually in Windows Security, Virus and threat protection, Manage settings. FortressOne deliberately does not attempt to bypass Tamper Protection: anything that defeats it is indistinguishable from malware behaviour and is exactly the sort of thing that gets a tool flagged. The security cost is real and permanent until reverted.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender", "name": "DisableAntiSpyware", "type": "DWord", "value": 1 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection", "name": "DisableRealtimeMonitoring", "type": "DWord", "value": 1 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection", "name": "DisableBehaviorMonitoring", "type": "DWord", "value": 1 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection", "name": "DisableOnAccessProtection", "type": "DWord", "value": 1 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection", "name": "DisableScanOnRealtimeEnable", "type": "DWord", "value": 1 }
+      ]
+    },
+    {
+      "id": "nuke.defender.exclude-fortnite",
+      "name": "Exclude Fortnite from Defender scanning (safer alternative)",
+      "category": "nuclear",
+      "risk": "medium",
+      "tier": "aggressive",
+      "impact": "high",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "This is the tweak you should almost certainly apply INSTEAD of disabling Defender entirely. It excludes the Fortnite and Epic install directories from real-time scanning, which captures nearly all of the performance benefit — because the game's asset reads are what the scanner was slowing down — while leaving the rest of the machine protected. The paths are resolved at apply time by the Fortnite module. Chosen over the full disable, this is the better engineering trade by a wide margin.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender", "name": "PUAProtection", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "nuke.windowsupdate.disable",
+      "name": "Disable Windows Update entirely",
+      "category": "nuclear",
+      "risk": "high",
+      "tier": "nuclear",
+      "impact": "medium",
+      "requiresReboot": true,
+      "os": ["10", "11"],
+      "rationale": "Windows Update downloads and installs in the background and periodically demands a restart, sometimes mid-session. Disabling it removes that class of interruption completely. The costs are serious and worth stating plainly: you stop receiving security patches, you stop receiving the platform and scheduler fixes that have historically improved game performance on Windows 11, and eventually your build reaches end of support. A better pattern for most people is to leave this enabled and instead set active hours plus a metered connection so updates never install while you play. Apply this only if you intend to manually update every few months.",
+      "actions": [
+        { "provider": "service", "name": "wuauserv", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "UsoSvc", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "WaaSMedicSvc", "value": "Disabled", "stopNow": true },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU", "name": "NoAutoUpdate", "type": "DWord", "value": 1 }
+      ]
+    },
+    {
+      "id": "nuke.update.defer-only",
+      "name": "Pause automatic updates without disabling them (safer alternative)",
+      "category": "nuclear",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "The recommended alternative to the tweak above. This stops Windows from downloading and installing automatically, and stops it from restarting your machine on its own, while leaving the update mechanism intact so you can patch deliberately when you are not playing. You keep security fixes and driver improvements; you lose the surprise restarts. This is what a careful person does instead of ripping the service out.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU", "name": "AUOptions", "type": "DWord", "value": 2 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate\\AU", "name": "NoAutoRebootWithLoggedOnUsers", "type": "DWord", "value": 1 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsUpdate", "name": "SetDisableUXWUAccess", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "nuke.search.disable-indexing",
+      "name": "Disable Windows Search indexing",
+      "category": "nuclear",
+      "risk": "medium",
+      "tier": "nuclear",
+      "impact": "medium",
+      "requiresReboot": true,
+      "os": ["10", "11"],
+      "rationale": "The search indexer crawls the filesystem building a content index. It is throttled and idle-aware, but its idea of idle includes sitting in a Fortnite lobby, and a large Fortnite install gives it a lot to crawl. Disabling it removes sustained background disk activity. The cost is that Start menu search for files becomes slow or stops finding things — on a machine with one program that is a fair trade, but it is a real usability regression you will notice.",
+      "actions": [
+        { "provider": "service", "name": "WSearch", "value": "Disabled", "stopNow": true }
+      ]
+    },
+    {
+      "id": "nuke.bits.disable",
+      "name": "Disable Background Intelligent Transfer Service",
+      "category": "nuclear",
+      "risk": "high",
+      "tier": "nuclear",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "BITS performs throttled background downloads for Windows Update and other components. Because it is throttled and yields to foreground traffic by design, it is already fairly well behaved and disabling it yields little. It is included for completeness at this tier, but it breaks Windows Update and some installer flows, and the honest assessment is that the cost outweighs the near-zero benefit. Recommended: skip this one.",
+      "actions": [
+        { "provider": "service", "name": "BITS", "value": "Disabled", "stopNow": true }
+      ]
+    },
+    {
+      "id": "nuke.hibernate.disable",
+      "name": "Disable hibernation and remove hiberfil.sys",
+      "category": "nuclear",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": true,
+      "os": ["10", "11"],
+      "rationale": "Hibernation reserves a file equal to a large fraction of your RAM on the system drive — several gigabytes on a 16GB machine. Disabling it reclaims that space and removes hybrid sleep, which is a common source of USB devices misbehaving after a resume. Note this also disables Fast Startup, which is a good thing here: Fast Startup means the machine never fully cold boots, so driver state and tweaks that apply at boot can persist in stale form and produce confusing results.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power", "name": "HibernateEnabled", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power", "name": "HiberbootEnabled", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "nuke.fastboot.disable",
+      "name": "Disable Fast Startup",
+      "category": "nuclear",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": true,
+      "os": ["10", "11"],
+      "rationale": "Fast Startup means 'shut down' actually hibernates the kernel session rather than powering off. The practical consequence for you is that driver state, USB enumeration and boot-time tweaks carry over between sessions instead of being reinitialised. That is the single most common reason a tweak appears not to work, or a controller that misbehaved keeps misbehaving after a restart. Turning it off costs a few seconds of boot time and makes the machine's behaviour reproducible, which matters enormously when you are trying to test whether a change helped.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Power", "name": "HiberbootEnabled", "type": "DWord", "value": 0 }
+      ]
+    }
+  ]
+}

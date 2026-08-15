@@ -1,0 +1,4 @@
+# Runtime state lives in %ProgramData%\FortressOne, never in the repo
+*.log
+/reports/
+/journal/

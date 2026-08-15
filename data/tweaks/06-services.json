@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 2,
+  "pack": "Services",
+  "description": "Background services with no role on a single-purpose gaming machine. Everything the game, the controller, the network or the boot process depends on is on the protection list and cannot be touched from here.",
+
+  "_note_on_xbox_services": "XboxGipSvc (Xbox Accessory Management) is deliberately NOT in this file. Your GameSir runs in Xbox layout, which means it presents as an XInput device, and the Xbox accessory stack is close enough to that path that disabling it is not worth the risk for the negligible resources it uses. The Xbox Live services below are safe because Fortnite authenticates through Epic, not Xbox Live.",
+
+  "tweaks": [
+    {
+      "id": "svc.xboxlive.disable",
+      "name": "Disable Xbox Live services",
+      "category": "services",
+      "risk": "low",
+      "tier": "core",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Fortnite on PC authenticates and saves through Epic Online Services, not Xbox Live. These services exist for Microsoft Store games and Game Pass. They start on demand, sit resident and do nothing for you. Controller support is unaffected — that runs through the XInput driver stack, which is protected and untouched.",
+      "actions": [
+        { "provider": "service", "name": "XblAuthManager", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "XblGameSave", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "XboxNetApiSvc", "value": "Disabled", "stopNow": true }
+      ]
+    },
+    {
+      "id": "svc.legacy.disable",
+      "name": "Disable obsolete and unused legacy services",
+      "category": "services",
+      "risk": "low",
+      "tier": "core",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Fax, Remote Registry, the retail demo mode, parental controls, Windows Media Player network sharing and the smart card stack are all either legacy or serve scenarios that do not exist on this machine. Remote Registry in particular is a service that accepts remote connections and is worth disabling on general principle even before considering performance.",
+      "actions": [
+        { "provider": "service", "name": "Fax", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "RemoteRegistry", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "RetailDemo", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "WpcMonSvc", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "WMPNetworkSvc", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "SCardSvr", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "ScDeviceEnum", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "AJRouter", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "ALG", "value": "Disabled", "stopNow": true }
+      ]
+    },
+    {
+      "id": "svc.location.disable",
+      "name": "Disable geolocation, sensors and maps",
+      "category": "services",
+      "risk": "low",
+      "tier": "core",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "A desktop has no GPS, no ambient light sensor and no accelerometer. These services poll for hardware that does not exist and support features you will never open. The maps broker additionally downloads map data in the background.",
+      "actions": [
+        { "provider": "service", "name": "lfsvc", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "MapsBroker", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "SensorService", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "SensrSvc", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "SensorDataService", "value": "Disabled", "stopNow": true }
+      ]
+    },
+    {
+      "id": "svc.mobile.disable",
+      "name": "Disable phone, wallet and mobile integration services",
+      "category": "services",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Phone Link, the wallet service, mobile hotspot sharing and internet connection sharing are all features for a machine that talks to a phone or shares its connection. None apply here. Internet Connection Sharing is additionally worth disabling because, when it activates unexpectedly, it reconfigures your network adapter — the last thing you want on a connection you are trying to keep stable.",
+      "actions": [
+        { "provider": "service", "name": "PhoneSvc", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "WalletService", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "icssvc", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "SharedAccess", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "MessagingService", "value": "Disabled", "stopNow": true }
+      ]
+    },
+    {
+      "id": "svc.discovery.disable",
+      "name": "Disable network discovery and media sharing",
+      "category": "services",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "SSDP and UPnP device host advertise and discover devices on the local network on a timer, generating periodic multicast traffic. On a single-PC wired setup this is pure noise. Be aware of one interaction: if you were relying on UPnP for automatic port forwarding through your routers, disabling the UPnP host here does not affect that — that is done by the router, not this service — but it is worth knowing the two share a name.",
+      "actions": [
+        { "provider": "service", "name": "SSDPSRV", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "upnphost", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "FDResPub", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "fdPHost", "value": "Disabled", "stopNow": true }
+      ]
+    },
+    {
+      "id": "svc.sync.disable",
+      "name": "Disable cloud sync and connected devices platform",
+      "category": "services",
+      "risk": "medium",
+      "tier": "aggressive",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "The Connected Devices Platform and sync host services keep state synchronised with a Microsoft account across devices. If you sign in with a local account and only run Fortnite, they synchronise nothing while still running and periodically touching the network. Marked medium risk because if you DO use a Microsoft account, disabling these breaks settings sync and some Store app behaviour.",
+      "actions": [
+        { "provider": "service", "name": "CDPSvc", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "CDPUserSvc", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "OneSyncSvc", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "PimIndexMaintenanceSvc", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "UserDataSvc", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "UnistoreSvc", "value": "Disabled", "stopNow": true }
+      ]
+    },
+    {
+      "id": "svc.print.disable",
+      "name": "Disable the print spooler",
+      "category": "services",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "You do not print from this machine. The spooler is also historically one of the most exploited services in Windows, so disabling it is a security improvement as well as one fewer resident process. Revert this if you ever attach a printer.",
+      "actions": [
+        { "provider": "service", "name": "Spooler", "value": "Disabled", "stopNow": true },
+        { "provider": "service", "name": "PrintNotify", "value": "Disabled", "stopNow": true }
+      ]
+    },
+    {
+      "id": "svc.sysmain.disable",
+      "name": "Disable SysMain (Superfetch)",
+      "category": "services",
+      "risk": "medium",
+      "tier": "aggressive",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "SysMain profiles your usage and preloads what it predicts you will run next. On a mechanical drive that is genuinely valuable. On an SSD the seek time it exists to hide does not exist, and what remains is background disk and CPU activity plus memory held for caching. Since this machine launches exactly one program, there is nothing to predict. Marked medium risk specifically because if Fortnite is installed on a mechanical hard drive rather than an SSD, disabling this will make your load times worse, not better — check which you have before applying.",
+      "actions": [
+        { "provider": "service", "name": "SysMain", "value": "Disabled", "stopNow": true }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 2,
+  "description": "Hard veto list. FortressOne will refuse to disable or remove anything listed here, regardless of tier or user selection. Every entry states WHY. If you disagree with an entry, the answer is to edit this file deliberately, not to have the tool guess.",
+
+  "_note_on_philosophy": "The purpose of a debloat tool is to remove things that cost you performance. Nothing on this list costs meaningful performance in a Fortnite session, and every item on it breaks either the game, the controller, the network, or the ability to boot. Removing them is not 'more aggressive optimisation' — it is breakage with no upside.",
+
+  "services": [
+    { "name": "EasyAntiCheat",     "reason": "Fortnite will not launch without Easy Anti-Cheat. Non-negotiable." },
+    { "name": "EasyAntiCheat_EOS", "reason": "Epic Online Services anti-cheat driver used by current Fortnite builds." },
+    { "name": "BEService",         "reason": "BattlEye. Fortnite ships both anti-cheats; disabling either can block launch." },
+
+    { "name": "Audiosrv",             "reason": "Windows Audio. No game audio, and no positional audio cues, without it." },
+    { "name": "AudioEndpointBuilder", "reason": "Enumerates audio devices. Disabling silences the machine entirely." },
+
+    { "name": "hidserv",   "reason": "Human Interface Device service. Your GameSir controller is an HID device — this is the controller stack." },
+    { "name": "HidUsb",    "reason": "USB HID driver. Directly required for a wired controller to enumerate." },
+    { "name": "xusb22",    "reason": "Xbox 360/XInput controller driver. Your GameSir runs in Xbox layout, which means XInput, which means this driver." },
+    { "name": "xboxgip",   "reason": "Xbox Game Input Protocol driver — used by Xbox-layout controllers over USB." },
+    { "name": "USBXHCI",   "reason": "USB 3.x host controller driver. Removing it disconnects every USB device including your controller." },
+    { "name": "usbhub",    "reason": "USB hub driver. Same consequence as above." },
+
+    { "name": "nsi",              "reason": "Network Store Interface. Disabling this breaks all networking, immediately and completely." },
+    { "name": "BFE",              "reason": "Base Filtering Engine. Windows drops all network traffic without it. A classic 'my internet died after debloating' cause." },
+    { "name": "Dhcp",             "reason": "Required to obtain an IP address from your router." },
+    { "name": "Dnscache",         "reason": "DNS client. Disabling forces uncached lookups and raises, not lowers, connection latency." },
+    { "name": "NlaSvc",           "reason": "Network Location Awareness. Windows firewall profile and connectivity detection depend on it." },
+    { "name": "netprofm",         "reason": "Network List Service. NlaSvc depends on it." },
+    { "name": "TCPIP",            "reason": "The TCP/IP stack itself." },
+    { "name": "Netbt",            "reason": "NetBIOS over TCP/IP; part of the core stack binding." },
+
+    { "name": "CryptSvc",   "reason": "Cryptographic Services. Certificate validation for Epic login, EAC handshake and Windows Update all fail without it." },
+    { "name": "RpcSs",      "reason": "Remote Procedure Call. The majority of Windows is built on it. Disabling prevents boot." },
+    { "name": "DcomLaunch", "reason": "DCOM Server Process Launcher. Disabling prevents boot." },
+    { "name": "RpcEptMapper", "reason": "RPC Endpoint Mapper. Disabling prevents boot." },
+    { "name": "PlugPlay",   "reason": "Plug and Play. Device enumeration, including your controller and GPU." },
+    { "name": "Power",      "reason": "Power service. Required for the power plan and CPU state control this tool configures." },
+    { "name": "Winmgmt",    "reason": "WMI. Hardware monitoring, GPU driver components and this tool's own diagnostics depend on it." },
+    { "name": "gpsvc",      "reason": "Group Policy Client. Disabling causes login failure on many systems." },
+    { "name": "ProfSvc",    "reason": "User Profile Service. Disabling means you cannot log in." },
+    { "name": "UserManager","reason": "Required for user session initialisation." },
+    { "name": "Schedule",   "reason": "Task Scheduler. Windows uses it for servicing and maintenance; disabling causes broad, hard-to-diagnose breakage." },
+    { "name": "SystemEventsBroker", "reason": "Core broker; many services fail to start without it." },
+    { "name": "CoreMessagingRegistrar", "reason": "Core messaging. Disabling causes boot failure on Windows 11." },
+    { "name": "TrustedInstaller", "reason": "Windows Modules Installer. Required to service or repair Windows later." },
+    { "name": "msiserver",  "reason": "Windows Installer. Required to install or repair the game, GPU driver, or runtimes." },
+
+    { "name": "nvlddmkm",    "reason": "NVIDIA display driver kernel module." },
+    { "name": "NVDisplay.ContainerLocalSystem", "reason": "NVIDIA display container. Removing it breaks NVIDIA Control Panel and the driver-side Reflex/low-latency settings this tool configures." },
+    { "name": "nvagent",     "reason": "NVIDIA network service component used by the driver stack." },
+
+    { "name": "StorSvc",  "reason": "Storage service." },
+    { "name": "volmgr",   "reason": "Volume manager. Boot-critical storage driver." },
+    { "name": "partmgr",  "reason": "Partition manager. Boot-critical storage driver." },
+    { "name": "disk",     "reason": "Disk class driver. Boot-critical." },
+    { "name": "storahci", "reason": "AHCI storage controller driver. Disabling causes an unbootable system (INACCESSIBLE_BOOT_DEVICE)." },
+    { "name": "stornvme", "reason": "NVMe storage driver. Disabling causes an unbootable system." },
+    { "name": "iaStorV",  "reason": "Intel RAID/AHCI driver. Boot-critical on Intel chipsets such as your Z590." },
+    { "name": "EhStorClass", "reason": "Enhanced storage class driver." },
+
+    { "name": "Winsock",     "reason": "Winsock. Sockets, therefore all game networking." },
+    { "name": "AFD",         "reason": "Ancillary Function Driver for Winsock. The kernel half of every socket the game opens." },
+    { "name": "EventLog",    "reason": "Windows Event Log. Numerous services declare a hard dependency and fail to start without it." },
+    { "name": "SamSs",       "reason": "Security Accounts Manager. Disabling prevents boot." },
+    { "name": "LSM",         "reason": "Local Session Manager. Disabling prevents login." },
+    { "name": "Themes",      "reason": "Required for correct fullscreen/windowed behaviour and DWM composition on Windows 11." }
+  ],
+
+  "registryPrefixes": [
+    { "prefix": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\EasyAntiCheat", "reason": "Anti-cheat configuration. Modifying it is both a launch failure and a ban risk." },
+    { "prefix": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\BEService",     "reason": "BattlEye configuration. Same reasoning." },
+    { "prefix": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SafeBoot",       "reason": "Safe Mode configuration. This is your recovery path if a tweak goes wrong — it must survive." },
+    { "prefix": "HKLM:\\SYSTEM\\Setup",                                      "reason": "Windows setup state. Corruption here can make the machine unbootable and unrepairable." },
+    { "prefix": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4D36E967-E325-11CE-BFC1-08002BE10318}", "reason": "Disk drive class. Boot-critical." },
+    { "prefix": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\storahci",      "reason": "Boot-critical storage driver configuration." },
+    { "prefix": "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\stornvme",      "reason": "Boot-critical storage driver configuration." },
+    { "prefix": "HKLM:\\SECURITY",                                           "reason": "LSA secrets store. Nothing here is a performance setting." },
+    { "prefix": "HKLM:\\SAM",                                                "reason": "Account database. Nothing here is a performance setting." },
+    { "prefix": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\BootDriverFlags", "reason": "Boot driver load order." }
+  ],
+
+  "applications": [
+    { "match": "*Visual C++*Redistributable*", "reason": "Fortnite and Easy Anti-Cheat link against the VC++ runtimes. Removing these is the single most common cause of 'the game stopped launching after I debloated'." },
+    { "match": "*Microsoft .NET*",             "reason": "Used by the Epic Games Launcher and parts of the NVIDIA driver stack." },
+    { "match": "*DirectX*",                    "reason": "Fortnite's renderer. Performance Mode is a DirectX 12 path." },
+    { "match": "*NVIDIA*",                     "reason": "Your GPU driver and control panel. This tool configures Reflex and low-latency mode through it." },
+    { "match": "*Easy Anti-Cheat*",            "reason": "Required by Fortnite." },
+    { "match": "*Epic Games*",                 "reason": "The launcher Fortnite runs under." },
+    { "match": "*Fortnite*",                   "reason": "The entire point of the machine." },
+    { "match": "*Intel*Chipset*",              "reason": "Z590 chipset drivers. Removing them degrades PCIe, USB and storage behaviour." },
+    { "match": "*Realtek*Audio*",              "reason": "Audio driver. Removing it costs you positional audio, which is a competitive loss, not a gain." },
+    { "match": "*Windows Driver Package*",     "reason": "Driver packages. Removal here is how you lose your controller or your NIC." }
+  ],
+
+  "protectedProcessNames": [
+    "FortniteClient-Win64-Shipping",
+    "EasyAntiCheat",
+    "EpicGamesLauncher",
+    "csrss", "wininit", "services", "lsass", "smss", "winlogon"
+  ]
+}

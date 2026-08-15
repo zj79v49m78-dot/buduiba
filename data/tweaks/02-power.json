@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 2,
+  "pack": "Power",
+  "description": "Power policy. On a desktop these settings cost you nothing but electricity and heat, and several of them directly affect controller responsiveness.",
+
+  "tweaks": [
+    {
+      "id": "pwr.usb.selective-suspend-off",
+      "name": "Disable USB selective suspend",
+      "category": "power",
+      "risk": "low",
+      "tier": "core",
+      "impact": "critical",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "This is the most important power setting on the list for a controller player. USB selective suspend lets Windows put an idle USB device into a low-power state; waking it costs milliseconds and the wake is triggered by the very input you are trying to send. On a wired controller this produces the exact symptom of the first input after a pause feeling mushy or dropped, while inputs during continuous movement feel fine. Disabling it keeps the controller's USB endpoint hot at all times.",
+      "actions": [
+        { "provider": "power", "name": "usb-selective-suspend", "subgroup": "2a737441-1930-4402-8d77-b2bebba308a3", "setting": "48e6b7a6-50f5-4782-a5d4-53bb8f07e226", "powerSource": "AC", "value": 0 }
+      ]
+    },
+    {
+      "id": "pwr.cpu.min-state-100",
+      "name": "Hold minimum processor state at 100%",
+      "category": "power",
+      "risk": "low",
+      "tier": "core",
+      "impact": "high",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "requires": ["desktop"],
+      "rationale": "Frequency ramping is not instant. When the CPU is sitting at a low multiplier and a frame suddenly needs work, the clock has to climb, and the first frames after that transition arrive late. Pinning the minimum state to 100% removes the ramp entirely so the clock is already where it needs to be. The honest cost is higher idle temperature, more fan noise and more power draw — all irrelevant on a desktop you use for one game. If your cooling is marginal, watch temperatures after applying this.",
+      "actions": [
+        { "provider": "power", "name": "processor-min-state", "subgroup": "54533251-82be-4824-96c1-47b60b740d00", "setting": "893dee8e-2bef-41e0-89c6-b55d0929964c", "powerSource": "AC", "value": 100 },
+        { "provider": "power", "name": "processor-max-state", "subgroup": "54533251-82be-4824-96c1-47b60b740d00", "setting": "bc5038f7-23e0-4960-96da-33abaf5935ec", "powerSource": "AC", "value": 100 }
+      ]
+    },
+    {
+      "id": "pwr.cpu.no-core-parking",
+      "name": "Disable CPU core parking",
+      "category": "power",
+      "risk": "low",
+      "tier": "core",
+      "impact": "high",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "requires": ["desktop"],
+      "rationale": "Core parking takes idle cores offline to save power and unparks them on demand. Unparking is not free and the heuristic reacts to load rather than predicting it, so a sudden burst of work — a squad pushing you, a big build fight — lands on a subset of cores while the rest wake up. On a 6-core chip that is a meaningful fraction of your CPU arriving late. Forcing 100% of cores to stay unparked removes the transition.",
+      "actions": [
+        { "provider": "power", "name": "core-parking-min-cores", "subgroup": "54533251-82be-4824-96c1-47b60b740d00", "setting": "0cc5b647-c1df-4637-891a-dec35c318583", "powerSource": "AC", "value": 100 }
+      ]
+    },
+    {
+      "id": "pwr.cpu.boost-aggressive",
+      "name": "Set processor boost mode to aggressive",
+      "category": "power",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "requires": ["desktop"],
+      "rationale": "Boost mode governs how eagerly Windows requests turbo frequencies. Aggressive mode (value 2) asks for turbo as soon as demand appears rather than waiting for sustained load. Fortnite's CPU demand is spiky by nature — quiet while looting, sharp during fights — which is precisely the pattern a conservative boost policy handles worst.",
+      "actions": [
+        { "provider": "power", "name": "processor-boost-mode", "subgroup": "54533251-82be-4824-96c1-47b60b740d00", "setting": "be337238-0d82-4146-a960-4f3749d470c7", "powerSource": "AC", "value": 2 }
+      ]
+    },
+    {
+      "id": "pwr.pcie.aspm-off",
+      "name": "Disable PCI Express link power management",
+      "category": "power",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "requires": ["desktop"],
+      "rationale": "Active State Power Management lets PCIe links drop into low-power states between transfers. Both your GPU and your network adapter sit on PCIe. Link state transitions add latency to the first transfer after an idle period, which affects GPU command submission and, more importantly for you, network packet delivery. Turning ASPM off keeps every link at full power.",
+      "actions": [
+        { "provider": "power", "name": "pcie-aspm", "subgroup": "501a4d13-42af-4429-9fd1-a8218c268e20", "setting": "ee12f906-d277-404b-b6da-e5fa1a576df5", "powerSource": "AC", "value": 0 }
+      ]
+    },
+    {
+      "id": "pwr.disk.never-sleep",
+      "name": "Never spin down storage",
+      "category": "power",
+      "risk": "low",
+      "tier": "core",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "A drive that has been powered down has to come back before it can serve the next texture or asset stream, producing a hitch. Fortnite streams assets continuously during a match. Setting the idle timeout to never removes the possibility. Minor on an SSD, more noticeable on a mechanical drive.",
+      "actions": [
+        { "provider": "power", "name": "disk-idle-timeout", "subgroup": "0012ee47-9041-4b5d-9b77-535fba8b1442", "setting": "6738e2c4-e8a5-4a42-b16a-e040e769756e", "powerSource": "AC", "value": 0 }
+      ]
+    },
+    {
+      "id": "pwr.sleep.disable",
+      "name": "Disable sleep and hibernate on AC",
+      "category": "power",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "requires": ["desktop"],
+      "rationale": "Sleep transitions are a recurring cause of USB devices re-enumerating incorrectly on wake — the classic 'my controller stopped working until I unplugged it' problem. On a machine that exists to run one game, there is no reason to allow the transition at all.",
+      "actions": [
+        { "provider": "power", "name": "sleep-after", "subgroup": "238c9fa8-0aad-41ed-83f4-97be242c8f20", "setting": "29f6c1db-86da-48c5-9fdb-f2b67b1f44da", "powerSource": "AC", "value": 0 },
+        { "provider": "power", "name": "hibernate-after", "subgroup": "238c9fa8-0aad-41ed-83f4-97be242c8f20", "setting": "9d7815a6-7ee4-497e-8888-515a05f02364", "powerSource": "AC", "value": 0 }
+      ]
+    }
+  ]
+}

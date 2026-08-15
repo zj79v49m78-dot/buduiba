@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 2,
+  "pack": "Latency",
+  "description": "Scheduler, interrupt and multimedia-class settings that affect how quickly your input reaches the game and how quickly the frame reaches your monitor.",
+
+  "tweaks": [
+    {
+      "id": "lat.mmcss.system-responsiveness",
+      "name": "MMCSS: release reserved background CPU",
+      "category": "latency",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "The Multimedia Class Scheduler reserves a percentage of CPU for background tasks whenever a multimedia-class thread is running. The default of 20 means one fifth of scheduling capacity is held back from the game. Setting it to 0 hands that capacity to the foreground title. On a 6-core part like the 11400F, where Fortnite can genuinely saturate the CPU during a busy endgame, this is worth having.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile", "name": "SystemResponsiveness", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "lat.mmcss.network-throttling",
+      "name": "Disable network throttling for multimedia apps",
+      "category": "latency",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": true,
+      "os": ["10", "11"],
+      "rationale": "Windows throttles non-multimedia network traffic to roughly 10 packets per millisecond while a multimedia-class application is running. Fortnite's gameplay traffic is small, frequent UDP datagrams — exactly the shape this throttle interferes with. Setting the index to 0xFFFFFFFF disables the throttle entirely. This is one of the few genuinely network-related registry tweaks with a real mechanism behind it.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile", "name": "NetworkThrottlingIndex", "type": "DWord", "value": 4294967295 }
+      ]
+    },
+    {
+      "id": "lat.mmcss.games-task",
+      "name": "MMCSS: raise the Games task priority class",
+      "category": "latency",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Fortnite registers itself with the MMCSS 'Games' task. That task's profile controls the GPU priority, thread priority and scheduling category the OS grants the game's render and input threads. The stock profile is conservative. Raising GPU Priority to 8, thread Priority to 6 and both scheduling categories to High gives the render thread better odds of being serviced promptly, which shows up as steadier frame pacing rather than raw FPS.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games", "name": "GPU Priority", "type": "DWord", "value": 8 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games", "name": "Priority", "type": "DWord", "value": 6 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games", "name": "Scheduling Category", "type": "String", "value": "High" },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games", "name": "SFIO Priority", "type": "String", "value": "High" }
+      ]
+    },
+    {
+      "id": "lat.scheduler.priority-separation",
+      "name": "Favour the foreground application in the scheduler",
+      "category": "latency",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Win32PrioritySeparation controls quantum length and how strongly the foreground process is boosted. The value 38 (0x26) means short, variable quanta with a 3:1 foreground bias — the game gets more, shorter turns on the CPU, which reduces the worst-case wait before its input and render threads run. Short quanta specifically help worst-case latency rather than average throughput, which is the trade you want in a shooter.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl", "name": "Win32PrioritySeparation", "type": "DWord", "value": 38 }
+      ]
+    },
+    {
+      "id": "lat.power.throttling-off",
+      "name": "Disable CPU power throttling",
+      "category": "latency",
+      "risk": "low",
+      "tier": "core",
+      "impact": "high",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Windows power throttling parks threads onto low-power states when it believes a workload is not latency-sensitive. Its heuristics regularly misjudge game threads, producing brief clock dips that appear as inconsistent frametimes and momentary input sluggishness. On a desktop with no battery to preserve, there is no reason to leave it on.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling", "name": "PowerThrottlingOff", "type": "DWord", "value": 1 }
+      ]
+    },
+    {
+      "id": "lat.boot.disable-dynamic-tick",
+      "name": "Disable dynamic timer tick",
+      "category": "latency",
+      "risk": "medium",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": true,
+      "os": ["10", "11"],
+      "requires": ["desktop"],
+      "rationale": "Dynamic tick lets the kernel suspend the periodic timer interrupt when idle to save power. A number of systems handle the resume from that suspension badly, producing DPC latency spikes that land as micro-stutter. Disabling it keeps the tick running continuously. The cost is power draw, which is irrelevant on a desktop. Verify with the DPC latency check afterwards — this is a tweak whose benefit is genuinely machine-dependent, so measure rather than assume.",
+      "actions": [
+        { "provider": "bcd", "name": "disabledynamictick", "value": "yes" }
+      ]
+    },
+    {
+      "id": "lat.boot.unforce-hpet",
+      "name": "Stop forcing the HPET platform clock",
+      "category": "latency",
+      "risk": "medium",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": true,
+      "os": ["10", "11"],
+      "rationale": "Old guides tell people to run 'bcdedit /set useplatformclock yes'. On modern hardware this is actively harmful: it forces Windows onto the High Precision Event Timer, whose reads are far more expensive than the invariant TSC the kernel would otherwise use, raising overhead on every timestamp the game takes. This tweak removes the forced setting so Windows selects the best available clock source itself. If you never set it, this is a harmless no-op.",
+      "actions": [
+        { "provider": "bcd", "name": "useplatformclock", "value": null }
+      ]
+    },
+    {
+      "id": "lat.gamedvr.disable-capture",
+      "name": "Disable Game DVR background capture",
+      "category": "latency",
+      "risk": "low",
+      "tier": "core",
+      "impact": "high",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Game DVR keeps a rolling capture buffer running behind every game so you can retroactively save a clip. That means continuous GPU-side encode work and an extra present-path hook, on a GPU that is already your bottleneck. Turning it off is one of the highest value-per-risk changes available, and it is the single most commonly cited fix for the specific symptom of good FPS with bad feel.",
+      "actions": [
+        { "provider": "registry", "path": "HKCU:\\System\\GameConfigStore", "name": "GameDVR_Enabled", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\System\\GameConfigStore", "name": "GameDVR_FSEBehaviorMode", "type": "DWord", "value": 2 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR", "name": "AllowGameDVR", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR", "name": "AppCaptureEnabled", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR", "name": "HistoricalCaptureEnabled", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "lat.gamebar.disable",
+      "name": "Disable the Xbox Game Bar overlay",
+      "category": "latency",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "The Game Bar injects an overlay into the game's present path and keeps a listener resident. Overlays are a recurring source of both added latency and anti-cheat friction. Note this is separate from Game Mode, which stays on — the overlay is the part worth removing.",
+      "actions": [
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\GameBar", "name": "UseNexusForGameBarEnabled", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\GameBar", "name": "ShowStartupPanel", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR", "name": "AppCaptureEnabled", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "lat.gamemode.enable",
+      "name": "Enable Windows Game Mode",
+      "category": "latency",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Game Mode had a poor reputation from its early Windows 10 implementation and a lot of guides still tell you to disable it. On current Windows 11 it suppresses background work such as driver installs and update scans while a game is in the foreground, and it is a prerequisite for some of the OS-side scheduling behaviour the game relies on. Leaving it on is the correct choice now, and this tweak exists specifically to undo the bad old advice.",
+      "actions": [
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\GameBar", "name": "AllowAutoGameMode", "type": "DWord", "value": 1 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\GameBar", "name": "AutoGameModeEnabled", "type": "DWord", "value": 1 }
+      ]
+    },
+    {
+      "id": "lat.dwm.reduce-compositor-work",
+      "name": "Reduce desktop compositor overhead",
+      "category": "latency",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Animations, transparency and shadow effects give the Desktop Window Manager continuous work to do on the same GPU the game is saturating. In true exclusive fullscreen the compositor is largely bypassed and this matters little, but it helps in borderless windowed and it removes a source of alt-tab stutter. Honest expectation: small, and mostly felt on the desktop rather than in a match.",
+      "actions": [
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\DWM", "name": "EnableAeroPeek", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects", "name": "VisualFXSetting", "type": "DWord", "value": 2 },
+        { "provider": "registry", "path": "HKCU:\\Control Panel\\Desktop", "name": "MenuShowDelay", "type": "String", "value": "0" },
+        { "provider": "registry", "path": "HKCU:\\Control Panel\\Desktop\\WindowMetrics", "name": "MinAnimate", "type": "String", "value": "0" }
+      ]
+    },
+    {
+      "id": "lat.nagle.disable-tcp-coalescing",
+      "name": "Disable Nagle's algorithm (TCP only)",
+      "category": "latency",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": true,
+      "os": ["10", "11"],
+      "rationale": "Read this one before enabling it. Nagle's algorithm coalesces small TCP writes to reduce packet overhead, adding up to ~200ms of delay to small sends. Every Fortnite guide on the internet tells you to disable it. However, Fortnite's actual gameplay traffic is UDP, which Nagle does not touch at all — so this will not improve your in-game feel. It affects TCP traffic such as launcher and matchmaking calls. It is included because it is harmless and mildly helpful for those, and because you should know it is not the input-delay fix it is usually sold as. The real fix for your input delay is the frame cap.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Microsoft\\MSMQ\\Parameters", "name": "TCPNoDelay", "type": "DWord", "value": 1 }
+      ]
+    }
+  ]
+}

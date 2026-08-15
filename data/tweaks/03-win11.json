@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 2,
+  "pack": "Windows 11",
+  "description": "Windows 11 specific overhead. The virtualisation-based security items here are the largest single CPU win available to you in software.",
+
+  "tweaks": [
+    {
+      "id": "w11.vbs.disable",
+      "name": "Disable Virtualisation Based Security (VBS)",
+      "category": "windows11",
+      "risk": "high",
+      "tier": "aggressive",
+      "impact": "critical",
+      "requiresReboot": true,
+      "os": ["11"],
+      "rationale": "VBS runs Windows itself inside a hypervisor so that security boundaries can be enforced by the hypervisor rather than the kernel. That isolation is not free: it adds overhead to memory access and to every transition the kernel makes, and independent testing has repeatedly measured a meaningful CPU cost in games, often in the mid single digits to low teens in percentage terms. On a 6-core i5-11400F that is the difference between holding a frametime target in an endgame and not. READ THE TRADE-OFF: this genuinely reduces your protection against kernel-level exploits and malicious drivers. You are choosing frames over a security layer. That is a legitimate choice on a machine that only runs one game, but it is a real choice, not a free win.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard", "name": "EnableVirtualizationBasedSecurity", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard", "name": "RequirePlatformSecurityFeatures", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "w11.hvci.disable",
+      "name": "Disable Memory Integrity (HVCI / Core Isolation)",
+      "category": "windows11",
+      "risk": "high",
+      "tier": "aggressive",
+      "impact": "critical",
+      "requiresReboot": true,
+      "os": ["11"],
+      "rationale": "Hypervisor-Enforced Code Integrity validates every driver through the hypervisor before it is allowed to run. It is the component of Core Isolation with the highest measured performance cost, and it is the one most often responsible for the gap between benchmark numbers and what a Windows 11 machine actually delivers. Disabling it recovers that cost. Same trade-off statement as VBS applies: this is a real reduction in kernel-level protection. Windows Security will show a warning banner after this, which is expected and accurate rather than a bug.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity", "name": "Enabled", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "w11.hypervisor.launchtype-off",
+      "name": "Stop launching the hypervisor at boot",
+      "category": "windows11",
+      "risk": "high",
+      "tier": "nuclear",
+      "impact": "high",
+      "requiresReboot": true,
+      "os": ["11"],
+      "rationale": "Even with VBS and HVCI switched off, the hypervisor can still be loaded at boot, and while it is loaded Windows continues to run as a guest with the associated transition overhead. Setting the launch type to off ensures the machine runs on bare metal. This disables Hyper-V, Windows Sandbox, WSL2 and Windows Subsystem for Android — none of which you use, but revert this tweak if you ever want them back. Easy Anti-Cheat does not require the hypervisor and is unaffected.",
+      "actions": [
+        { "provider": "bcd", "name": "hypervisorlaunchtype", "value": "off" }
+      ]
+    },
+    {
+      "id": "w11.copilot.disable",
+      "name": "Disable Windows Copilot",
+      "category": "windows11",
+      "risk": "low",
+      "tier": "core",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["11"],
+      "rationale": "Copilot keeps a resident process and a taskbar integration alive for a feature you will never invoke while playing. The performance cost is small but it is pure overhead on a single-purpose machine, and it removes one more thing that can decide to update or notify itself mid-match.",
+      "actions": [
+        { "provider": "registry", "path": "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot", "name": "TurnOffWindowsCopilot", "type": "DWord", "value": 1 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsCopilot", "name": "TurnOffWindowsCopilot", "type": "DWord", "value": 1 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "ShowCopilotButton", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "w11.recall.disable",
+      "name": "Disable Recall and AI data analysis",
+      "category": "windows11",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["11"],
+      "rationale": "Recall periodically captures and indexes screenshots of what is on screen. That is continuous background capture and disk write activity competing with the game for exactly the resources you are trying to free, and it is capture work happening on a GPU that is already your bottleneck. Disabling it is straightforwardly correct here.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\WindowsAI", "name": "DisableAIDataAnalysis", "type": "DWord", "value": 1 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsAI", "name": "DisableAIDataAnalysis", "type": "DWord", "value": 1 }
+      ]
+    },
+    {
+      "id": "w11.widgets.disable",
+      "name": "Disable Widgets and news feed",
+      "category": "windows11",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["11"],
+      "rationale": "The widgets board runs a WebView2 browser process that periodically fetches news and weather. That is a full browser engine resident in memory and touching the network on a timer, for a panel you will never open. It is one of the larger easy wins in the Windows 11 background set.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Dsh", "name": "AllowNewsAndInterests", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", "name": "TaskbarDa", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "w11.search.disable-web",
+      "name": "Remove web results from Start menu search",
+      "category": "windows11",
+      "risk": "low",
+      "tier": "core",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Every Start menu keystroke otherwise fires a network request to Bing. That is latency on the desktop and a background network conversation you did not ask for. It does not affect in-game performance but it makes the machine feel considerably more responsive to use.",
+      "actions": [
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "DisableWebSearch", "type": "DWord", "value": 1 },
+        { "provider": "registry", "path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search", "name": "ConnectedSearchUseWeb", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings", "name": "IsDynamicSearchBoxEnabled", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "w11.startup.no-delay",
+      "name": "Remove the startup application delay",
+      "category": "windows11",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Windows deliberately staggers startup programs to make the desktop appear sooner. On a machine with almost nothing left in startup after debloating, that stagger only delays the few things you actually want. Small quality-of-life change rather than a performance one.",
+      "actions": [
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Serialize", "name": "StartupDelayInMSec", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "w11.transparency.disable",
+      "name": "Disable taskbar and window transparency",
+      "category": "windows11",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Acrylic and mica transparency effects are per-frame GPU blur work performed by the compositor. On a GTX 1070 that is already the limiting component, handing any of it back to the game is worth doing, though the honest magnitude here is small and mostly affects alt-tabbing rather than gameplay.",
+      "actions": [
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", "name": "EnableTransparency", "type": "DWord", "value": 0 }
+      ]
+    },
+    {
+      "id": "w11.notifications.disable",
+      "name": "Silence notifications and Focus Assist interruptions",
+      "category": "windows11",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "A toast notification arriving mid-fight causes a composition change and, in some fullscreen modes, a brief focus change. Either can cost you a frame at the worst possible moment. Suppressing notifications entirely removes a whole class of unpredictable interruption.",
+      "actions": [
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\PushNotifications", "name": "ToastEnabled", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings", "name": "NOC_GLOBAL_SETTING_TOASTS_ENABLED", "type": "DWord", "value": 0 },
+        { "provider": "registry", "path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager", "name": "SubscribedContent-338389Enabled", "type": "DWord", "value": 0 }
+      ]
+    }
+  ]
+}

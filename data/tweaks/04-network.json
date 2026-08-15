@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 2,
+  "pack": "Network",
+  "description": "Network adapter and stack settings. Read the honesty note: most 'gaming network tweaks' circulating online do nothing. These are the ones with an actual mechanism.",
+
+  "_honesty_note": "Your ping is dominated by the physical distance between you and the Epic datacentre plus your ISP's routing. Nothing in this file changes either. What these tweaks address is jitter and the small, local delays added between your NIC receiving a packet and the game seeing it. If you are 35ms from the server, you will still be roughly 35ms from the server after applying every tweak here — but the variance around that number should tighten, and tighter variance is what actually feels better in a build fight.",
+
+  "tweaks": [
+    {
+      "id": "net.nic.disable-eee",
+      "name": "Disable Energy Efficient Ethernet",
+      "category": "network",
+      "risk": "low",
+      "tier": "core",
+      "impact": "high",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "requires": ["ethernet"],
+      "rationale": "Energy Efficient Ethernet (802.3az) lets the link enter a low-power idle state between frames and wake when traffic resumes. The wake transition costs real microseconds to low milliseconds, and game traffic is exactly the bursty, small-packet pattern that keeps triggering it. This is one of the few adapter settings that produces a measurable jitter improvement rather than a placebo one. Several keyword variants are attempted because vendors name it differently; the ones your NIC does not expose are skipped silently.",
+      "actions": [
+        { "provider": "netadapter", "name": "*EEE", "value": "0" },
+        { "provider": "netadapter", "name": "EnableGreenEthernet", "value": "0" },
+        { "provider": "netadapter", "name": "AdvancedEEE", "value": "0" },
+        { "provider": "netadapter", "name": "EEELinkAdvertisement", "value": "0" }
+      ]
+    },
+    {
+      "id": "net.nic.disable-interrupt-moderation",
+      "name": "Disable NIC interrupt moderation",
+      "category": "network",
+      "risk": "medium",
+      "tier": "core",
+      "impact": "high",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "requires": ["ethernet"],
+      "rationale": "Interrupt moderation batches incoming packets and raises one interrupt for the group instead of one per packet. That is excellent for throughput and bad for latency: your position update can sit in the NIC waiting for the batch to fill or the timer to expire. Disabling it means every packet interrupts immediately. The honest cost is measurably higher CPU usage from the extra interrupts — on a 6-core chip this is a real trade, so if you see CPU-bound frametime regressions after this, revert it. For most players the latency win is worth it.",
+      "actions": [
+        { "provider": "netadapter", "name": "*InterruptModeration", "value": "0" },
+        { "provider": "netadapter", "name": "ITR", "value": "0" }
+      ]
+    },
+    {
+      "id": "net.nic.disable-power-saving",
+      "name": "Stop the NIC from entering power-saving states",
+      "category": "network",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "requires": ["ethernet"],
+      "rationale": "Separate from EEE, most adapters expose their own power-saving and selective-suspend behaviour. The same reasoning applies: a link that has powered down has to come back before it can deliver the packet carrying your opponent's position. On a desktop there is no reason for the network card to ever save power.",
+      "actions": [
+        { "provider": "netadapter", "name": "PowerSavingMode", "value": "0" },
+        { "provider": "netadapter", "name": "*SelectiveSuspend", "value": "0" },
+        { "provider": "netadapter", "name": "ULPMode", "value": "0" },
+        { "provider": "netadapter", "name": "*ModernStandbyWoLMagicPacket", "value": "0" }
+      ]
+    },
+    {
+      "id": "net.nic.enable-rss",
+      "name": "Enable Receive Side Scaling",
+      "category": "network",
+      "risk": "low",
+      "tier": "core",
+      "impact": "medium",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "requires": ["ethernet"],
+      "rationale": "Without RSS, all received network processing is pinned to CPU core 0. Core 0 is also where a great deal of other system work lands, so network processing ends up queued behind unrelated work at exactly the wrong moments. RSS spreads receive processing across cores. This is a case where the default is sometimes already correct — the tweak is idempotent and will report as already-applied if so.",
+      "actions": [
+        { "provider": "netadapter", "name": "*RSS", "value": "1" }
+      ]
+    },
+    {
+      "id": "net.nic.disable-flow-control",
+      "name": "Disable Ethernet flow control",
+      "category": "network",
+      "risk": "medium",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "requires": ["ethernet"],
+      "rationale": "Flow control lets a congested link tell the sender to pause. For a game, a paused link is worse than a dropped packet: the game's netcode already handles loss gracefully, but a pause delays everything behind it. Realistically this almost never triggers on a home gigabit link with a single PC, so expect no perceptible change — it is included for completeness rather than because it will fix anything.",
+      "actions": [
+        { "provider": "netadapter", "name": "*FlowControl", "value": "0" }
+      ]
+    },
+    {
+      "id": "net.tcp.disable-heuristics",
+      "name": "Stop Windows overriding TCP autotuning",
+      "category": "network",
+      "risk": "low",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "Windows scaling heuristics can silently override the configured receive window autotuning level based on its own guesses about the connection. Pinning autotuning to normal and disabling the heuristic makes behaviour predictable. This affects downloads and launcher traffic rather than UDP gameplay packets, so do not expect it to change your in-game feel.",
+      "actions": [
+        { "provider": "tcp", "name": "AutoTuningLevelLocal", "value": "Normal" }
+      ]
+    },
+    {
+      "id": "net.tcp.enable-ecn",
+      "name": "Enable Explicit Congestion Notification",
+      "category": "network",
+      "risk": "medium",
+      "tier": "aggressive",
+      "impact": "low",
+      "requiresReboot": false,
+      "os": ["10", "11"],
+      "rationale": "ECN lets routers signal congestion by marking packets instead of dropping them. Where the path supports it end to end this reduces retransmission and smooths latency under load. Support is inconsistent and a badly behaved middlebox can make things worse, which is why this sits at aggressive rather than core. Behind a double-NAT setup specifically, test this one and revert it if your connection gets less stable rather than more.",
+      "actions": [
+        { "provider": "tcp", "name": "EcnCapability", "value": "Enabled" }
+      ]
+    }
+  ]
+}
